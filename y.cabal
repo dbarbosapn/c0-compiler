@@ -1,0 +1,23 @@
+name:                y
+version:             0.1.0.0
+-- synopsis:
+-- description:
+license:             BSD3
+license-file:        LICENSE
+author:              Enio
+maintainer:          eniofcup@hotmail.com
+-- copyright:
+-- category:
+build-type:          Simple
+extra-source-files:  CHANGELOG.md
+cabal-version:       >=1.10
+
+-- Lexer tests
+executable test
+  main-is:             MainLexer.hs
+  other-modules:       Lexer, TestLexer
+  other-extensions:    TemplateHaskell
+  build-depends:       base, array, QuickCheck
+  hs-source-dirs:      src, src/srcLexer
+  build-tools:         alex
+  default-language:    Haskell2010

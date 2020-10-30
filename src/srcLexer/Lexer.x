@@ -1,9 +1,15 @@
-{ module Lexic.Lexer where } -- What is between { } is actual haskell code
+ -- What is between { } is actual haskell code
+{
+module Lexer where
+
+import Data.Char
+}
 
 %wrapper "basic"
 
 $digit = [0-9] -- digits
 $alpha = [_a-zA-Z] -- alphabetc characters
+$white = [\ \n\r\t] -- Space chars
 
 tokens :-
 
@@ -19,6 +25,20 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 ")" { \_ -> RPAREN }
 "(" { \_ -> LPAREN }
 
+-- Float and int numbers
+$digit+ { \s -> NUM (read s :: Int) }
+$digit+("."$digit+)?([eE][\-\+]?$digit+)? { \s -> REAL (read s :: Float) }
+
+-- Bool type
+[Tt][rR][uU][eE] { \s -> BOOL $ map toLower s }
+[Ff][Aa][Ll][Ss][Ee] { \s -> BOOL $ map toLower s }
+
+-- Operators
+"+" { \_ -> ADD }
+"-" { \_ -> SUB }
+"/" { \_ -> DIV }
+"*" { \_ -> MULT }
+
 {
 data Token = LPAREN
      | RPAREN
@@ -26,6 +46,13 @@ data Token = LPAREN
      | LBRACE
      | RBRACE
      | POINT
+     | NUM Int
+     | REAL Float
+     | BOOL String
+     | ADD
+     | SUB
+     | DIV
+     | MULT
      deriving (Eq, Show)
 
 getTokens :: String -> [Token]
