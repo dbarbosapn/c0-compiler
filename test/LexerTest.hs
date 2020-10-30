@@ -28,14 +28,20 @@ prop_hex = getTokens "0xAbCdE123" === [INT 2882396451]
 prop_bool = getTokens "true false" === [BOOL True, BOOL False]
 
 -- Operators test
-prop_ope = getTokens "+-/*" === [ADD, SUB, DIV, MULT]
+prop_ope = getTokens "+-/*%" === [ADD, SUB, DIV, MULT, MOD]
 prop_ope1 = getTokens "= == <= >= /= < > " === [EQUAL, IS_EQUAL, IS_LESS_OR_EQUAL, IS_MORE_OR_EQUAL, IS_NOT_EQUAL, IS_LESS, IS_MORE]
 
 -- Char test
-prop_char = getTokens "\'a\'" == [CHAR 'a']
+prop_char = getTokens "\'a\'" === [CHAR 'a']
 
 -- String test
-prop_string = getTokens "\"string\"" == [STRING "string"]
+prop_string = getTokens "\"string\"" === [STRING "string"]
+
+-- Special Words
+prop_reservedWords = getTokens "for while if then else" === [FOR, WHILE, IF, THEN, ELSE]
+
+-- Id test
+prop_id = getTokens "random while random whilerandom" === [ID "random",WHILE,ID "random",ID "whilerandom"]
 
 
 -- the bizarre return [] is needed on GHC 7.8

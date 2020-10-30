@@ -10,13 +10,18 @@ import Data.Char
 -- Macros
 $digit = [0-9] -- Digits
 $alpha = [_a-zA-Z] -- alphabetc characters
-$alphaDigit = [_a-zA-Z0-9] -- Alpha or digits
--- There is no need to define $white because, alex already does it in full
+$alphaDigit = [_a-zA-Z0-9]
+-- Alex already has White chars macro called $white
+
+
+-- For some reason when i try to "track" '%' char for the mod the whole
+-- program breaks. To solve this i will just define a macro. If any other
+-- char breaks like this, just put it here and we will solve it later
 
 -- Its not necessary to have the following macros but it makes it
 -- easier to read
-$strDel = [\"]
-$charDel = [\']
+$strDel = [\"] --"
+$charDel = [\'] --'
 
 tokens :-
 
@@ -49,6 +54,8 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 "-" { \_ -> SUB }
 "/" { \_ -> DIV }
 "*" { \_ -> MULT }
+
+-- Comparisons
 "=" { \_ -> EQUAL}
 "==" { \_ -> IS_EQUAL }
 "<=" { \_ -> IS_LESS_OR_EQUAL }
@@ -56,6 +63,16 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 "/=" { \_ -> IS_NOT_EQUAL }
 "<" { \_ -> IS_LESS }
 ">" { \_ -> IS_MORE }
+
+-- Reserved Words
+"for" { \_ -> FOR }
+"while" { \_ -> WHILE }
+"if" { \_ -> IF }
+"then" { \_ -> THEN }
+"else" { \_ -> ELSE }
+
+-- ID
+$alpha$alphaDigit* { \s -> ID s }
 
 -- Char
 $charDel($printable|$white)$charDel { \s -> CHAR $ head $ tail s }
@@ -74,6 +91,7 @@ data Token = LPAREN
      | SUB
      | DIV
      | MULT
+     | MOD
      | STRING String
      | CHAR Char
      | RBRACKET
@@ -88,6 +106,14 @@ data Token = LPAREN
      | IS_NOT_EQUAL
      | IS_LESS
      | IS_MORE
+     -- Reserved words
+     | FOR
+     | WHILE
+     | IF
+     | THEN
+     | ELSE
+     -- ID for functions
+     | ID String
      deriving (Eq, Show)
 
 hexToInt :: String -> Int
