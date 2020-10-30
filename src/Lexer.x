@@ -20,35 +20,29 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 -- Special characters like { , ) etc
 "{" { \_ -> LBRACE }
 "}" { \_ -> RBRACE }
-"," { \_ -> COMMA }
-"." { \_ -> POINT }
 ")" { \_ -> RPAREN }
 "(" { \_ -> LPAREN }
 
--- Float and int numbers
-$digit+ { \s -> NUM (read s :: Int) }
-$digit+("."$digit+)?([eE][\-\+]?$digit+)? { \s -> REAL (read s :: Float) }
+-- Float and Int numbers
+$digit+                                           { \s -> INT (read s :: Int) }
 
--- Bool type
-[Tt][rR][uU][eE] { \s -> BOOL $ map toLower s }
-[Ff][Aa][Ll][Ss][Ee] { \s -> BOOL $ map toLower s }
+-- Bool
+"true"    { \s -> BOOL True }
+"false"   { \s -> BOOL False }
 
 -- Operators
-"+" { \_ -> ADD }
-"-" { \_ -> SUB }
-"/" { \_ -> DIV }
-"*" { \_ -> MULT }
+"+"       { \_ -> ADD }
+"-"       { \_ -> SUB }
+"/"       { \_ -> DIV }
+"*"       { \_ -> MULT }
 
 {
 data Token = LPAREN
      | RPAREN
-     | COMMA
      | LBRACE
      | RBRACE
-     | POINT
-     | NUM Int
-     | REAL Float
-     | BOOL String
+     | INT Int
+     | BOOL Bool
      | ADD
      | SUB
      | DIV
