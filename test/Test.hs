@@ -2,9 +2,11 @@ module Main where
 
 import Lexer
 import LexerTest
+import ParserTest
 import System.Exit
 
 main :: IO()
 main = do 
-        passed <- runLexerTests
-        if passed then exitSuccess else exitFailure
+        passedLexer <- runLexerTests
+        passedParser <- runParserTests
+        if passedLexer && passedParser then exitSuccess else exitFailure
