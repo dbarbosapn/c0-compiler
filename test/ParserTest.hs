@@ -9,5 +9,8 @@ import Lexer
 import Parser
 import Test.QuickCheck
 
+prop_1 = True
+
 return []
-runParserTests = $(verboseCheckAll)
+--runParserTests = $(verboseCheckAll)
+runParserTests = $(quickCheckAll)

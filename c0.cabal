@@ -5,10 +5,30 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 -- Run Tests
-Test-Suite test
+Test-Suite lexerTest
   type:                exitcode-stdio-1.0
-  main-is:             Test.hs
-  other-modules:       Lexer, Parser, LexerTest, ParserTest
+  main-is:             MainLexerTest.hs
+  other-modules:       Lexer, LexerTest
+  other-extensions:    TemplateHaskell
+  build-depends:       base, array, QuickCheck
+  hs-source-dirs:      src, test
+  build-tools:         alex
+  default-language:    Haskell2010
+
+Test-Suite parserTest
+  type:                exitcode-stdio-1.0
+  main-is:             MainParserTest.hs
+  other-modules:       Lexer, Parser, ParserTest
+  other-extensions:    TemplateHaskell
+  build-depends:       base, array, QuickCheck
+  hs-source-dirs:      src, test
+  build-tools:         alex, happy
+  default-language:    Haskell2010
+
+-- Run executable
+executable main
+  main-is:             Main.hs
+  other-modules:       Lexer, Parser
   other-extensions:    TemplateHaskell
   build-depends:       base, array, QuickCheck
   hs-source-dirs:      src, test
