@@ -44,8 +44,9 @@ prop_reservedWords = getTokens "for while if then else return" === [FOR, WHILE, 
 prop_id = getTokens "random while random whilerandom" === [ID "random", WHILE, ID "random", ID "whilerandom"]
 
 -- Function Test
-prop_function = 
+prop_function =
     getTokens "int main(int argc, char argv){ return 0; }" === [T_INT, ID "main", LPAREN, T_INT, ID "argc", COMMA, T_CHAR, ID "argv", RPAREN, LBRACE, RETURN, INT 0, SEMICOLON, RBRACE]
 
 return []
-runLexerTests = $(verboseCheckAll)
+--runLexerTests = $(verboseCheckAll)
+runLexerTests = $(quickCheckAll)
