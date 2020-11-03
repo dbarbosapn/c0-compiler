@@ -1,19 +1,17 @@
-## How to test
+## How to Test
 
-cabal new-test --enable-tests
+`cabal new-test --enable-tests`
 
-## Or
+or
 
-cabal new-configure --enable-tests
-cabal new-test
+`cabal new-configure --enable-tests`
+`cabal new-test`
 
+## How to Run
 
+`cabal new-run --disable-tests`
 
-## How to eun
+or
 
-cabal new-run --disable-tests
-
-## Or
-
-cabal new-configure --disable-tests
-cabal new-run
+`cabal new-configure --disable-tests`
+`cabal new-run`

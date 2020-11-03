@@ -129,5 +129,4 @@ hexToInt (_:_:hex) = sum [ y * 16^x  | (x, y) <- zip [0..] $ map digitToInt $ re
 
 getTokens :: String -> [Token]
 getTokens str = alexScanTokens str
-
 }
