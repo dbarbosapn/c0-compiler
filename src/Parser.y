@@ -1,6 +1,7 @@
 {
 module Parser where
 import Lexer
+import AST
 }
 
 %name parse
@@ -72,67 +73,69 @@ id      { ID $$ }
 
 -- Grammar
 
-Program : GDecl                                             {()}
-        | GDef                                              {()}
-        | GDecl Program                                     {()}
-        | GDef Program                                      {()}
+Root : Program                                              { Program $1 }
 
-GDecl : Type id "(" FuncParams ")" ";"                      {()}
+Program : GDef                                              { [$1] }
+        | GDef Program                                      { $1 : $2 }
+        | {- Empty File -}                                  { [] }
 
-GDef : Type id "(" FuncParams ")" "{" MultStmt "}"          {()}
+GDef : Tp id "(" FuncParams ")" "{" MultStmt "}"            { FuncDef $1 $2 $4 $7 }
 
-Stmt : Simple ";"                                           {()}
-     | "if" "(" Exp ")" Stmt                                {()}
-     | "if" "(" Exp ")" Stmt "else" Stmt                    {()}
-     | "while" "(" Exp ")" Stmt                             {()}
-     | "for" "(" ForInner ")" Stmt                          {()}
-     | "return" ";"                                         {()}
-     | "return" Exp ";"                                     {()}
-     | "{" MultStmt "}"                                     {()}
+Stmt : Simple ";"                                           { Simple $1 }
+     | "if" "(" Exp ")" Stmt                                { IfStatement $3 $5 }
+     | "if" "(" Exp ")" Stmt "else" Stmt                    { IfElseStatement $3 $5 $7 }
+     | "while" "(" Exp ")" Stmt                             { WhileStatement $3 $5 }
+     | "for" "(" ForInner ")" Stmt                          { ForStatement $3 $5 }
+     | "return" ";"                                         { ReturnStatement Nothing }
+     | "return" Exp ";"                                     { ReturnStatement (Just $2) }
+     | "{" MultStmt "}"                                     { MultipleStatements $2 }
 
-MultStmt : Stmt                                             {()}
-         | Stmt MultStmt                                    {()}
 
-Simple : Exp                                                {()}
+MultStmt : Stmt                                             { [$1] }
+         | Stmt MultStmt                                    { $1 : $2 }
+         | {- No Statements -}                              { [] }
 
-Type : "int"                                                {()}
-     | "bool"                                               {()}
-     | "char"                                               {()}
+Simple : Exp                                                { Expression $1 }
 
-Exp : "(" Exp ")"                                           {()}
-    | int                                                   {()}
-    | bool                                                  {()}
-    | Exp BinOp Exp                                         {()}
-    | id                                                    {()}
-    | id "(" ")"                                            {()}
-    | id "(" CallParams ")"                                 {()}
+Tp : "int"                                                  { TypeInt }
+   | "bool"                                                 { TypeBool }
+   | "char"                                                 { TypeChar }
+
+Exp : "(" Exp ")"                                           { $2 }
+    | int                                                   { IntValue $1 }
+    | bool                                                  { BoolValue $1 }
+    | BinOp                                                 { BinaryOperation $1 }
+    | id                                                    { Id $1 }
+    | id "(" CallParams ")"                                 { FunctionCall $1 $3 }
     
-ArithmeticOp : "+"                                          {()}
-             | "-"                                          {()}
-             | "/"                                          {()}
-             | "*"                                          {()}
-             | "%"                                          {()}
+ArithmeticOp : Exp "+" Exp                                  { Add $1 $3 }
+             | Exp "-" Exp                                  { Subtract $1 $3 }
+             | Exp "/" Exp                                  { Divide $1 $3 }
+             | Exp "*" Exp                                  { Multiply $1 $3 }
+             | Exp "%" Exp                                  { Modulo $1 $3 }
 
-RelationalOp : "=="                                         {()} 
-             | "<="                                         {()} 
-             | ">="                                         {()} 
-             | "!="                                         {()} 
-             | "<"                                          {()} 
-             | ">"                                          {()}
+RelationalOp : Exp "==" Exp                                 { Equals $1 $3 } 
+             | Exp "<=" Exp                                 { IsLessOrEqual $1 $3 } 
+             | Exp ">=" Exp                                 { IsMoreOrEqual $1 $3 } 
+             | Exp "!=" Exp                                 { IsNotEqual $1 $3 } 
+             | Exp "<" Exp                                  { IsLess $1 $3 } 
+             | Exp ">" Exp                                  { IsMore $1 $3 }
 
-BinOp : ArithmeticOp                                        {()}
-      | RelationalOp                                        {()}
+BinOp : ArithmeticOp                                        { ArithmeticOperation $1 }
+      | RelationalOp                                        { RelationalOperation $1 }
 
-FuncParams : Type id                                        {()}
-           | Type id "," FuncParams                         {()}
+FuncParams : Tp id                                          { [DefParam $1 $2] }
+           | Tp id "," FuncParams                           { (DefParam $1 $2) : $4 }
+           | {- No Params -}                                { [] }
 
-CallParams : Exp                                            {()}
-           | Exp "," CallParams                             {()}
+CallParams : Exp                                            { [$1] }
+           | Exp "," CallParams                             { $1 : $3 }
+           | {- No Params -}                                { [] }
 
-ForInner : ";" Exp ";"                                      {()}
-         | Simple ";" Exp ";"                               {()}
-         | ";" Exp ";" Simple                               {()}
-         | Simple ";" Exp ";" Simple                        {()}
+ForInner : ";" Exp ";"                                      { (Nothing, Just $2, Nothing) }
+         | Simple ";" Exp ";"                               { (Just $1, Just $3, Nothing) }
+         | ";" Exp ";" Simple                               { (Nothing, Just $2, Just $4) }
+         | Simple ";" Exp ";" Simple                        { (Just $1, Just $3, Just $5) }
 
 
 {
