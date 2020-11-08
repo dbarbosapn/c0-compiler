@@ -12,9 +12,7 @@ end prop:
 
 start sol:
 
-Program
-[FuncDef TypeInt "main" [DefParam TypeInt "argc", DefParam TypeChar "argv"]
-[ReturnStatement (Just (IntValue 0))]]
+Program []
 
 end sol:
 
@@ -36,7 +34,7 @@ end prop:
 
 start sol:
 
-[]
+Program []
 
 end sol:
 
@@ -71,7 +69,7 @@ end prop:
 
 start sol:
 
-[]
+Program []
 
 end sol:
 
@@ -93,6 +91,6 @@ end prop:
 
 start sol:
 
-[]
+Program []
 
 end sol:

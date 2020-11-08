@@ -113,7 +113,7 @@ void readPropName(FILE *rd, FILE *wr)
   readEmpty(rd);
   writeSomething(wr, readLine(rd), "\n", NULL);
 
-  writeSomething(wr, " = \"", NULL, NULL);
+  writeSomething(wr, " = parse (getTokens \"", NULL, NULL);
 }
 
 void readProp(FILE *rd, FILE *wr)
@@ -127,7 +127,7 @@ void readProp(FILE *rd, FILE *wr)
   for( readLine(rd) ; !strstr(buffer, "end prop:"); readLine(rd) )
     writeSomething(wr, buffer, "\n", "\\n");
 
-  writeSomething(wr, "\" === ", NULL, NULL);
+  writeSomething(wr, "\") === ", NULL, NULL);
 }
 
 void readSol(FILE *rd, FILE *wr)
@@ -147,5 +147,5 @@ void startFile(FILE *wr)
 
 void endFile(FILE *wr)
 {
-  writeSomething(wr, "return []\nrunParserTests = $(verboseCheckAll\n", NULL, NULL);
+  writeSomething(wr, "return []\nrunParserTests = $(verboseCheckAll)\n", NULL, NULL);
 }

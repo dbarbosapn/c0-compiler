@@ -1,7 +1,7 @@
 #!/bin/bash
 
-gcc -Wall testCreation.c -o testCreation
+gcc -Wall ./test/testCreation.c -o ./test/testCreation
 
-$(./testCreation testExample.txt ParserTest.hs)
+$(./test/testCreation ./test/testExample.txt ./test/ParserTest.hs)
 
-rm testCreation
+rm ./test/testCreation
