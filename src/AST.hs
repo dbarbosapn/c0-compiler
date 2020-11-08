@@ -6,16 +6,15 @@ data Definitions = FuncDef Type String [Parameters] [Statement] deriving (Eq, Sh
 
 data Parameters = DefParam Type String deriving (Eq, Show)
 
-data Statement = Simple Simple
+
+data Statement = SimpleStatement Expression
                | IfStatement Expression Statement
                | IfElseStatement Expression Statement Statement
                | WhileStatement Expression Statement
-               | ForStatement (Maybe Simple, Maybe Expression, Maybe Simple) Statement
+               | ForStatement (Maybe Expression, Maybe Expression, Maybe Expression) Statement
                | ReturnStatement (Maybe Expression)
                | MultipleStatements [Statement]
                deriving (Eq, Show)
-
-data Simple = Expression Expression deriving (Eq, Show)
 
 data Type = TypeInt
           | TypeBool
@@ -27,6 +26,7 @@ data Expression = IntValue Int
                 | BinaryOperation BinaryOperation
                 | Id String
                 | FunctionCall String [Expression]
+                | VarDecl [Parameters]
                 deriving (Eq, Show)
 
 data BinaryOperation = ArithmeticOperation ArithmeticOperation
