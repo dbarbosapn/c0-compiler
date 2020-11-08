@@ -1,0 +1,98 @@
+2
+
+start prop:
+simple_main_test
+
+int main()
+{
+  return 0;
+}
+
+end prop:
+
+start sol:
+
+Program
+[FuncDef TypeInt "main" [DefParam TypeInt "argc", DefParam TypeChar "argv"]
+[ReturnStatement (Just (IntValue 0))]]
+
+end sol:
+
+start prop:
+simple_sqrt_calc
+
+int main() {
+  int s, n;
+  s = 0;
+  n = 1;
+  while (n <= 10) {
+    s = s + n*n;
+    n = n + 1;
+  }
+  print_int(n);
+}
+
+end prop:
+
+start sol:
+
+[]
+
+end sol:
+
+
+start prop:
+test_prime
+
+bool is_prime(int n) {
+  int d;
+  d = 2;
+  if (n == 1) // 1 não é primo
+    return false;
+  while (d <= n) {
+    if (n%d == 0)
+      return false;
+    else
+      d = d+1;
+  }
+  return true;
+}
+
+int main() {
+  int n;
+  n = scan_int();
+  if (is_prime(n))
+    print_str("prime");
+  else
+    print_str("not prime");
+}
+
+end prop:
+
+start sol:
+
+[]
+
+end sol:
+
+
+start prop:
+calc_fac
+
+int factorial(int n) {
+  if (n == 0)
+    return 1;
+  return n * factorial(n-1);
+}
+
+int main() {
+  print_int(factorial(read_int()));
+}
+
+end prop:
+
+start sol:
+
+[]
+
+end sol:
