@@ -1,4 +1,4 @@
-2
+5
 
 start prop:
 simple_main_test
@@ -47,6 +47,30 @@ end sol:
 
 
 start prop:
+test_if
+
+int main()
+{
+  if ( n <= 3*2 )
+    n = 2;
+
+  if ( 1 )
+    n = 3;
+
+  else
+    n=4;
+}
+
+end prop:
+
+start sol:
+
+Program []
+
+end sol:
+
+
+start prop:
 test_prime
 
 bool is_prime(int n) {
@@ -67,9 +91,9 @@ int main() {
   int n;
   n = scan_int();
   if (is_prime(n))
-    print_str("prime");
+    print_str(prime);
   else
-    print_str("not prime");
+    print_str(not_prime);
 }
 
 end prop:
@@ -82,7 +106,7 @@ end sol:
 
 
 start prop:
-calc_fac
+fac_calc
 
 int factorial(int n) {
   if (n == 0)

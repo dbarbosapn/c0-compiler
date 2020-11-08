@@ -62,6 +62,7 @@ id      { ID $$ }
 
 -- Precedence
 %right "="
+%left "<=" ">=" "<" "<"
 %left   "(" ")" "[" "]"
 %left   "*" "/"
 %left   "+" "-"
@@ -86,16 +87,6 @@ FuncParams : Tp id                                          { [DefParam $1 $2] }
            | Tp id "," FuncParams                           { (DefParam $1 $2) : $4 }
            | {- No Params -}                                { [] }
 
--- Stmt : "return" ";"                                         { ReturnStatement Nothing }
---      | "return" Exp ";"                                     { ReturnStatement (Just $2) }
---      | Tp MultVar                                           { VarDefinition $1 $2 }
---      | Exp ";"                                              { SimpleStatement $1 }
--- --      | "if" "(" Exp ")" Stmt                                { IfStatement $3 $5 }
--- --      | "if" "(" Exp ")" Stmt "else" Stmt                    { IfElseStatement $3 $5 $7 }
--- --      | "while" "(" Exp ")" Stmt                             { WhileStatement $3 $5 }
--- --      | "for" "(" ForInner ")" Stmt                          { ForStatement $3 $5 }
--- --      | "{" MultStmt "}"                                     { MultipleStatements $2 }
-
 MultStmt : Stmt                                             { [$1] }
          | Stmt MultStmt                                    { $1 : $2 }
          | {- No Statements -}                              { [] }
@@ -104,8 +95,19 @@ Stmt : Tp MultVar ";"                                       { VarDefinition $1 $
      | "return" ";"                                         { ReturnStatement Nothing }
      | "return" Exp ";"                                     { ReturnStatement (Just $2) }
      | Exp ";"                                              { SimpleStatement $1 }
-     | "while" "(" Exp ")" "{" MultStmt "}"                 { WhileStatement $3 $6 }
      | "while" "(" Exp ")" Stmt                             { WhileStatement $3 [$5] }
+     | "while" "(" Exp ")" "{" MultStmt "}"                 { WhileStatement $3 $6 }
+     | IfStmt { IfStatement $1 }
+     | IfStmt ElseStmt { IfElseStatement $1 $2 }
+--      | "for" "(" ForInner ")" Stmt                          { ForStatement $3 $5 }
+--      | "{" MultStmt "}"                                     { MultipleStatements $2 }
+
+
+IfStmt : "if" "(" Exp ")" Stmt                              { If $3 [$5] }
+      | "if" "(" Exp ")" "{" MultStmt "}"                   { If $3 $6 }
+
+ElseStmt : "else" Stmt { Else [$2] }
+         | "else" "{" MultStmt "}" { Else $3 }
 
 Tp : "int"                                                  { TypeInt }
    | "bool"                                                 { TypeBool }

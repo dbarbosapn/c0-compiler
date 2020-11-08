@@ -14,13 +14,17 @@ data Variable = Var String
 
 data Statement = SimpleStatement Expression
                | VarDefinition Type [Variable]
-               | IfStatement Expression Statement
-               | IfElseStatement Expression Statement Statement
+               | IfStatement IfStmt
+               | IfElseStatement IfStmt ElseStmt
                | WhileStatement Expression [Statement]
                | ForStatement (Maybe Expression, Maybe Expression, Maybe Expression) Statement
                | ReturnStatement (Maybe Expression)
                | MultipleStatements [Statement]
                deriving (Eq, Show)
+
+data IfStmt = If Expression [Statement] deriving (Eq, Show)
+
+data ElseStmt = Else [Statement] deriving (Eq, Show)
 
 data Type = TypeInt
           | TypeBool
