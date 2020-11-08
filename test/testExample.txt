@@ -1,9 +1,9 @@
-1
+2
 
 start prop:
 simple_main_test
 
-int main(int argc, char argv)
+int main()
 {
   return 0;
 }
@@ -12,18 +12,27 @@ end prop:
 
 start sol:
 
-Program
-[FuncDef TypeInt "main"
-[DefParam TypeInt "argc", DefParam TypeChar "argv"]
-[ReturnStatement (Just (IntValue 0))]]
+Program []
 
 end sol:
 
 start prop:
-simple_sqrt_calc
+calc_sqrt_sum
 
-int main() {
-  int 3;
+int main()
+{
+  int s, n;
+
+  s = 0;
+  n = 1;
+
+  while( n <= 10 )
+    {
+      s = s + n*n;
+      n = n + 1;
+    }
+
+  print_int(n);
 
   return 0;
 }

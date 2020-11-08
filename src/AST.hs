@@ -6,11 +6,17 @@ data Definitions = FuncDef Type String [Parameters] [Statement] deriving (Eq, Sh
 
 data Parameters = DefParam Type String deriving (Eq, Show)
 
+--data VarDefinition = VarDef Type [Variable] deriving (Eq, Show)
+
+data Variable = Var String
+              | Ass String Expression
+              deriving (Eq, Show)
 
 data Statement = SimpleStatement Expression
+               | VarDefinition Type [Variable]
                | IfStatement Expression Statement
                | IfElseStatement Expression Statement Statement
-               | WhileStatement Expression Statement
+               | WhileStatement Expression [Statement]
                | ForStatement (Maybe Expression, Maybe Expression, Maybe Expression) Statement
                | ReturnStatement (Maybe Expression)
                | MultipleStatements [Statement]
@@ -31,6 +37,7 @@ data Expression = IntValue Int
 
 data BinaryOperation = ArithmeticOperation ArithmeticOperation
                      | RelationalOperation RelationalOperation
+                     | AssignOperationion AssignOperation
                      deriving (Eq, Show)
 
 data ArithmeticOperation = Add Expression Expression
@@ -47,3 +54,6 @@ data RelationalOperation = Equals Expression Expression
                          | IsLess Expression Expression
                          | IsMore Expression Expression
                          deriving (Eq, Show)
+
+data AssignOperation = Assign String Expression
+                     deriving (Eq, Show)

@@ -48,5 +48,5 @@ prop_function =
     getTokens "int main(int argc, char argv){ return 0; }" === [T_INT, ID "main", LPAREN, T_INT, ID "argc", COMMA, T_CHAR, ID "argv", RPAREN, LBRACE, RETURN, INT 0, SEMICOLON, RBRACE]
 
 return []
---runLexerTests = $(verboseCheckAll)
-runLexerTests = $(quickCheckAll)
+runLexerTests = $(verboseCheckAll)
+--runLexerTests = $(quickCheckAll)

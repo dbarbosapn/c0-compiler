@@ -36,7 +36,7 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 
 
 -- Numeric Constants
-("0" | [1-9]$digit+)     { \s -> INT (read s :: Int) }
+($digit | [1-9]$digit+)     { \s -> INT (read s :: Int) }
 "0"[xX][0-9a-fA-F]+      { \s -> INT $ hexToInt s }
 
 -- Bool constants
@@ -90,7 +90,7 @@ data A_Operator = ADD | SUB | DIV | MULT | MOD deriving (Eq, Show)
 -- Relational Operator
 data R_Operator = EQUAL | LESS_OR_EQUAL | MORE_OR_EQUAL | NOT_EQUAL | LESS | MORE deriving (Eq, Show)
 
-data Token = 
+data Token =
      -- Separators
      LPAREN
      | RPAREN
