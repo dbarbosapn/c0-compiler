@@ -5,7 +5,11 @@ Acho que não vais achar util, mas para escrever as cenas dos testes em haskell
 é uma dor de cabeça, especialmente se tiveres a fazer debuging!! Se quiseres usar
 tas a vontade, deixo te aqui como usar
 
-Como usar
+
+-------Como Usar------
+./test/testCreateScript.sh <---- Correr na pasta root (Não tive pachorra de fzr um makefile)
+
+-------Como escrever-----
 
 #Top of page
 <Numero>       <--- Quantas proposições existem
