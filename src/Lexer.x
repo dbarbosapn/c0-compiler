@@ -80,6 +80,7 @@ $strDel ($printable # $strDel)* $strDel                { \s -> STRING [x | x <- 
 "char"         { \_ -> T_CHAR }
 "bool"         { \_ -> T_BOOL }
 "void"         { \_ -> T_VOID }
+"string"       { \_ -> T_STRING }
 
 -- ID
 $alpha$alphaDigit* { \s -> ID s }
@@ -122,6 +123,7 @@ data Token =
      | T_CHAR
      | T_BOOL
      | T_VOID
+     | T_STRING
      -- IDs (Function names, variables...)
      | ID String
      deriving (Eq, Show)

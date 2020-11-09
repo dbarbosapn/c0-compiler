@@ -17,13 +17,14 @@ data Statement = Simple Simple
 
 data Simple = Expression Expression
             | AssignOperation AssignOperation
-            | VariableDeclaration String (Maybe Expression)
+            | VariableDeclaration Type String (Maybe Expression)
             deriving (Eq, Show)
 
 data Type = TypeInt
           | TypeBool
           | TypeChar
           | TypeVoid
+          | TypeString
           deriving (Eq, Show)
 
 data Expression = IntValue Int

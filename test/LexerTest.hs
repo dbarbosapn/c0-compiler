@@ -35,7 +35,7 @@ prop_ope1 = getTokens "= == <= >= != < >" === [ASSIGN, R_OP EQUAL, R_OP LESS_OR_
 prop_char = getTokens "\'a\'" === [CHAR 'a']
 
 -- String test
-prop_string = getTokens "\"string\"" === [STRING "string"]
+prop_string = getTokens "\"string \"" === [STRING "string "]
 
 -- Reserved Words
 prop_reservedWords = getTokens "for while if then else return" === [FOR, WHILE, IF, THEN, ELSE, RETURN]

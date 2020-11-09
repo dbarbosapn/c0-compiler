@@ -50,6 +50,7 @@ str         { STRING $$ }
 "char"      { T_CHAR }
 "bool"      { T_BOOL }
 "void"      { T_VOID }
+"string"    { T_STRING }
 
 -- Separators
 "{"     { LBRACE }
@@ -104,14 +105,15 @@ MultStmt : Stmt                                             { [$1] }
 
 Simple : Exp                                                { Expression $1 }
        | AssignOp                                           { AssignOperation $1 }
-       | Tp id                                              { VariableDeclaration $2 Nothing }
-       | Tp id "=" Exp                                      { VariableDeclaration $2 (Just $4) }
+       | Tp id                                              { VariableDeclaration $1 $2 Nothing }
+       | Tp id "=" Exp                                      { VariableDeclaration $1 $2 (Just $4) }
 
 
 Tp : "int"                                                  { TypeInt }
    | "bool"                                                 { TypeBool }
    | "char"                                                 { TypeChar }
    | "void"                                                 { TypeVoid }
+   | "string"                                               { TypeString }
 
 Exp : "(" Exp ")"                                           { $2 }
     | int                                                   { IntValue $1 }
