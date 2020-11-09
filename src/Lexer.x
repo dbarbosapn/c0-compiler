@@ -36,7 +36,7 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 
 
 -- Numeric Constants
-($digit | [1-9]$digit+)     { \s -> INT (read s :: Int) }
+("0" | [1-9]$digit*)     { \s -> INT (read s :: Int) }
 "0"[xX][0-9a-fA-F]+      { \s -> INT $ hexToInt s }
 
 -- Bool constants
@@ -44,10 +44,10 @@ $white+ ; -- Ignore white characters like ' ', '\t' etc
 "false"   { \s -> BOOL False }
 
 -- Char Constant
-$charDel($printable|$white)$charDel { \s -> CHAR $ head $ tail s }
+$charDel ($printable # $charDel) $charDel              { \s -> CHAR $ head $ tail s }
 
 -- String Constant
-$strDel($printable|$white)*$strDel { \s -> STRING [ x | x <- s, x /= '\"' ] }
+$strDel ($printable # $strDel)* $strDel                { \s -> STRING [x | x <- s, x /= '\"'] }
 
 -- Arithmetic Operators
 "+" { \_ -> A_OP ADD }
@@ -79,6 +79,7 @@ $strDel($printable|$white)*$strDel { \s -> STRING [ x | x <- s, x /= '\"' ] }
 "int"          { \_ -> T_INT }
 "char"         { \_ -> T_CHAR }
 "bool"         { \_ -> T_BOOL }
+"void"         { \_ -> T_VOID }
 
 -- ID
 $alpha$alphaDigit* { \s -> ID s }
@@ -120,6 +121,7 @@ data Token =
      | T_INT
      | T_CHAR
      | T_BOOL
+     | T_VOID
      -- IDs (Function names, variables...)
      | ID String
      deriving (Eq, Show)

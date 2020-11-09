@@ -6,42 +6,37 @@ data Definitions = FuncDef Type String [Parameters] [Statement] deriving (Eq, Sh
 
 data Parameters = DefParam Type String deriving (Eq, Show)
 
---data VarDefinition = VarDef Type [Variable] deriving (Eq, Show)
-
-data Variable = Var String
-              | Ass String Expression
-              deriving (Eq, Show)
-
-data Statement = SimpleStatement Expression
-               | VarDefinition Type [Variable]
-               | IfStatement IfStmt
-               | IfElseStatement IfStmt ElseStmt
-               | WhileStatement Expression [Statement]
-               | ForStatement (Maybe Expression, Maybe Expression, Maybe Expression) Statement
+data Statement = Simple Simple
+               | IfStatement Expression Statement
+               | IfElseStatement Expression Statement Statement
+               | WhileStatement Expression Statement
+               | ForStatement (Maybe Simple, Expression, Maybe Simple) Statement
                | ReturnStatement (Maybe Expression)
                | MultipleStatements [Statement]
                deriving (Eq, Show)
 
-data IfStmt = If Expression [Statement] deriving (Eq, Show)
-
-data ElseStmt = Else [Statement] deriving (Eq, Show)
+data Simple = Expression Expression
+            | AssignOperation AssignOperation
+            | VariableDeclaration String (Maybe Expression)
+            deriving (Eq, Show)
 
 data Type = TypeInt
           | TypeBool
           | TypeChar
+          | TypeVoid
           deriving (Eq, Show)
 
 data Expression = IntValue Int
                 | BoolValue Bool
+                | StringValue String
+                | CharValue Char
                 | BinaryOperation BinaryOperation
                 | Id String
                 | FunctionCall String [Expression]
-                | VarDecl [Parameters]
                 deriving (Eq, Show)
 
 data BinaryOperation = ArithmeticOperation ArithmeticOperation
                      | RelationalOperation RelationalOperation
-                     | AssignOperationion AssignOperation
                      deriving (Eq, Show)
 
 data ArithmeticOperation = Add Expression Expression

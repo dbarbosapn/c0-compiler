@@ -4,22 +4,14 @@ import Lexer
 import Parser
 import AST
 import Test.QuickCheck
+import TestPrograms
 
 
-prop_simple_main_test = parse (getTokens "\nint main()\n{\n  return 0;\n}\n\n") ===  Program []  
+prop_program_square_sum = parse (getTokens test_program_square_sum) ===  Program [FuncDef TypeInt "main" [] [Simple (VariableDeclaration "s" Nothing),Simple (VariableDeclaration "n" Nothing),Simple (AssignOperation (Assign "s" (IntValue 0))),Simple (AssignOperation (Assign "n" (IntValue 1))),WhileStatement (BinaryOperation (RelationalOperation (IsLessOrEqual (Id "n") (IntValue 10)))) (MultipleStatements [Simple (AssignOperation (Assign "s" (BinaryOperation (ArithmeticOperation (Add (Id "s") (BinaryOperation (ArithmeticOperation (Multiply (Id "n") (Id "n"))))))))),Simple (AssignOperation (Assign "n" (BinaryOperation (ArithmeticOperation (Add (Id "n") (IntValue 1))))))]),Simple (Expression (FunctionCall "print_int" [Id "n"]))]]
 
+prop_program_integer_is_prime = parse (getTokens test_program_integer_is_prime) === Program [FuncDef TypeBool "is_prime" [DefParam TypeInt "n"] [Simple (VariableDeclaration "d" Nothing),Simple (AssignOperation (Assign "d" (IntValue 2))),IfStatement (BinaryOperation (RelationalOperation (Equals (Id "n") (IntValue 1)))) (ReturnStatement (Just (BoolValue False))),WhileStatement (BinaryOperation (RelationalOperation (IsLessOrEqual (Id "d") (Id "n")))) (MultipleStatements [IfElseStatement (BinaryOperation (ArithmeticOperation (Modulo (Id "n") (BinaryOperation (RelationalOperation (Equals (Id "d") (IntValue 0))))))) (ReturnStatement (Just (BoolValue False))) (Simple (AssignOperation (Assign "d" (BinaryOperation (ArithmeticOperation (Add (Id "d") (IntValue 1)))))))]),ReturnStatement (Just (BoolValue True))],FuncDef TypeInt "main" [] [Simple (VariableDeclaration "n" Nothing),Simple (AssignOperation (Assign "n" (FunctionCall "scan_int" []))),IfElseStatement (FunctionCall "is_prime" [Id "n"]) (Simple (Expression (FunctionCall "print_str" [StringValue "prime"]))) (Simple (Expression (FunctionCall "print_str" [StringValue "not prime"])))]]
 
-prop_calc_sqrt_sum = parse (getTokens "\nint main()\n{\n  int s, n;\n\n  s = 0;\n  n = 1;\n\n  while( n <= 10 )\n    {\n      s = s + n*n;\n      n = n + 1;\n    }\n\n  print_int(n);\n\n  return 0;\n}\n\n") ===  Program []  
-
-
-prop_test_if = parse (getTokens "\nint main()\n{\n  if ( n <= 3*2 )\n    n = 2;\n\n  if ( 1 )\n    n = 3;\n\n  else\n    n=4;\n}\n\n") ===  Program []  
-
-
-prop_test_prime = parse (getTokens "\nbool is_prime(int n) {\n  int d;\n  d = 2;\n  if (n == 1) // 1 não é primo\n    return false;\n  while (d <= n) {\n    if (n%d == 0)\n      return false;\n    else\n      d = d+1;\n  }\n  return true;\n}\n\nint main() {\n  int n;\n  n = scan_int();\n  if (is_prime(n))\n    print_str(prime);\n  else\n    print_str(not_prime);\n}\n\n") ===  Program []  
-
-
-prop_fac_calc = parse (getTokens "\nint factorial(int n) {\n  if (n == 0)\n    return 1;\n  return n * factorial(n-1);\n}\n\nint main() {\n  print_int(factorial(read_int()));\n}\n\n") ===  Program []  
-
+prop_program_factorial = parse (getTokens test_program_factorial) === Program [FuncDef TypeInt "factorial" [DefParam TypeInt "n"] [IfStatement (BinaryOperation (RelationalOperation (Equals (Id "n") (IntValue 0)))) (ReturnStatement (Just (IntValue 1))),ReturnStatement (Just (BinaryOperation (ArithmeticOperation (Multiply (Id "n") (FunctionCall "factorial" [BinaryOperation (ArithmeticOperation (Subtract (Id "n") (IntValue 1)))])))))],FuncDef TypeInt "main" [] [Simple (Expression (FunctionCall "print_int" [FunctionCall "factorial" [FunctionCall "read_int" []]]))]] 
 
 return []
 runParserTests = $(verboseCheckAll)
