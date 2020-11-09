@@ -35,7 +35,7 @@ prop_ope1 = getTokens "= == <= >= != < >" === [ASSIGN, R_OP EQUAL, R_OP LESS_OR_
 prop_char = getTokens "\'a\'" === [CHAR 'a']
 
 -- String test
-prop_string = getTokens "\"string\"" === [STRING "string"]
+prop_string = getTokens "\"string \"" === [STRING "string "]
 
 -- Reserved Words
 prop_reservedWords = getTokens "for while if then else return" === [FOR, WHILE, IF, THEN, ELSE, RETURN]
@@ -48,5 +48,5 @@ prop_function =
     getTokens "int main(int argc, char argv){ return 0; }" === [T_INT, ID "main", LPAREN, T_INT, ID "argc", COMMA, T_CHAR, ID "argv", RPAREN, LBRACE, RETURN, INT 0, SEMICOLON, RBRACE]
 
 return []
---runLexerTests = $(verboseCheckAll)
-runLexerTests = $(quickCheckAll)
+runLexerTests = $(verboseCheckAll)
+--runLexerTests = $(quickCheckAll)

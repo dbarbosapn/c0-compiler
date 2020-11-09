@@ -16,6 +16,12 @@ int         { INT $$ }
 -- Bool constants
 bool        { BOOL $$ }
 
+-- Char constant
+char        { CHAR $$ }
+
+-- String constant
+str         { STRING $$ }
+
 -- Arithmetic Operators
 "+"         { A_OP ADD }
 "-"         { A_OP SUB }
@@ -43,6 +49,8 @@ bool        { BOOL $$ }
 "int"       { T_INT }
 "char"      { T_CHAR }
 "bool"      { T_BOOL }
+"void"      { T_VOID }
+"string"    { T_STRING }
 
 -- Separators
 "{"     { LBRACE }
@@ -61,12 +69,12 @@ bool        { BOOL $$ }
 id      { ID $$ }
 
 -- Precedence
-%left   "(" ")" "[" "]"
-%left   "*" "/"
-%left   "+" "-"
-%left   "<" "<=" ">=" ">"
-%left   "==" "!="
 %right  "="
+%left   "==" "!="
+%left   "<" "<=" ">=" ">"
+%left   "+" "-"
+%left   "*" "/"
+%left   "(" ")" "[" "]"
 
 
 %%
@@ -82,8 +90,8 @@ Program : GDef                                              { [$1] }
 GDef : Tp id "(" FuncParams ")" "{" MultStmt "}"            { FuncDef $1 $2 $4 $7 }
 
 Stmt : Simple ";"                                           { Simple $1 }
-     | "if" "(" Exp ")" Stmt                                { IfStatement $3 $5 }
      | "if" "(" Exp ")" Stmt "else" Stmt                    { IfElseStatement $3 $5 $7 }
+     | "if" "(" Exp ")" Stmt                                { IfStatement $3 $5 }
      | "while" "(" Exp ")" Stmt                             { WhileStatement $3 $5 }
      | "for" "(" ForInner ")" Stmt                          { ForStatement $3 $5 }
      | "return" ";"                                         { ReturnStatement Nothing }
@@ -96,14 +104,22 @@ MultStmt : Stmt                                             { [$1] }
          | {- No Statements -}                              { [] }
 
 Simple : Exp                                                { Expression $1 }
+       | AssignOp                                           { AssignOperation $1 }
+       | Tp id                                              { VariableDeclaration $1 $2 Nothing }
+       | Tp id "=" Exp                                      { VariableDeclaration $1 $2 (Just $4) }
+
 
 Tp : "int"                                                  { TypeInt }
    | "bool"                                                 { TypeBool }
    | "char"                                                 { TypeChar }
+   | "void"                                                 { TypeVoid }
+   | "string"                                               { TypeString }
 
 Exp : "(" Exp ")"                                           { $2 }
     | int                                                   { IntValue $1 }
     | bool                                                  { BoolValue $1 }
+    | str                                                   { StringValue $1 }
+    | char                                                  { CharValue $1 }
     | BinOp                                                 { BinaryOperation $1 }
     | id                                                    { Id $1 }
     | id "(" CallParams ")"                                 { FunctionCall $1 $3 }
@@ -121,6 +137,8 @@ RelationalOp : Exp "==" Exp                                 { Equals $1 $3 }
              | Exp "<" Exp                                  { IsLess $1 $3 } 
              | Exp ">" Exp                                  { IsMore $1 $3 }
 
+AssignOp : id "=" Exp                                       { Assign $1 $3 }
+
 BinOp : ArithmeticOp                                        { ArithmeticOperation $1 }
       | RelationalOp                                        { RelationalOperation $1 }
 
@@ -132,10 +150,10 @@ CallParams : Exp                                            { [$1] }
            | Exp "," CallParams                             { $1 : $3 }
            | {- No Params -}                                { [] }
 
-ForInner : ";" Exp ";"                                      { (Nothing, Just $2, Nothing) }
-         | Simple ";" Exp ";"                               { (Just $1, Just $3, Nothing) }
-         | ";" Exp ";" Simple                               { (Nothing, Just $2, Just $4) }
-         | Simple ";" Exp ";" Simple                        { (Just $1, Just $3, Just $5) }
+ForInner : ";" Exp ";"                                      { (Nothing, $2, Nothing) }
+         | Simple ";" Exp ";"                               { (Just $1, $3, Nothing) }
+         | ";" Exp ";" Simple                               { (Nothing, $2, Just $4) }
+         | Simple ";" Exp ";" Simple                        { (Just $1, $3, Just $5) }
 
 
 {

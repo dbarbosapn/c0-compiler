@@ -10,20 +10,27 @@ data Statement = Simple Simple
                | IfStatement Expression Statement
                | IfElseStatement Expression Statement Statement
                | WhileStatement Expression Statement
-               | ForStatement (Maybe Simple, Maybe Expression, Maybe Simple) Statement
+               | ForStatement (Maybe Simple, Expression, Maybe Simple) Statement
                | ReturnStatement (Maybe Expression)
                | MultipleStatements [Statement]
                deriving (Eq, Show)
 
-data Simple = Expression Expression deriving (Eq, Show)
+data Simple = Expression Expression
+            | AssignOperation AssignOperation
+            | VariableDeclaration Type String (Maybe Expression)
+            deriving (Eq, Show)
 
 data Type = TypeInt
           | TypeBool
           | TypeChar
+          | TypeVoid
+          | TypeString
           deriving (Eq, Show)
 
 data Expression = IntValue Int
                 | BoolValue Bool
+                | StringValue String
+                | CharValue Char
                 | BinaryOperation BinaryOperation
                 | Id String
                 | FunctionCall String [Expression]
@@ -47,3 +54,6 @@ data RelationalOperation = Equals Expression Expression
                          | IsLess Expression Expression
                          | IsMore Expression Expression
                          deriving (Eq, Show)
+
+data AssignOperation = Assign String Expression
+                     deriving (Eq, Show)

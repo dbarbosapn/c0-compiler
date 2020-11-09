@@ -2,3 +2,6 @@
 dist*/
 **/Lexer.hs
 **/Parser.hs
+**/*.c
+**/*.txt
+**/*.o
