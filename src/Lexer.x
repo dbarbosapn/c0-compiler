@@ -71,7 +71,6 @@ $strDel ($printable # $strDel)* $strDel                { \s -> STRING [x | x <- 
 "for"     { \_ -> FOR }
 "while"   { \_ -> WHILE }
 "if"      { \_ -> IF }
-"then"    { \_ -> THEN }
 "else"    { \_ -> ELSE }
 "return"  { \_ -> RETURN }
 
@@ -115,7 +114,6 @@ data Token =
      | FOR
      | WHILE
      | IF
-     | THEN
      | ELSE
      | RETURN
      -- Types

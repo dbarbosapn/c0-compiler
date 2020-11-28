@@ -41,7 +41,6 @@ str         { STRING $$ }
 "for"     { FOR }
 "while"   { WHILE }
 "if"      { IF }
-"then"    { THEN }
 "else"    { ELSE }
 "return"  { RETURN }
 
@@ -58,8 +57,8 @@ str         { STRING $$ }
 ")"     { RPAREN }
 "("     { LPAREN }
 ";"     { SEMICOLON }
-"["     { LBRACKET }
-"]"     { RBRACKET }
+-- "["     { LBRACKET } Not being used, but may later, if so then uncomment
+-- "]"     { RBRACKET } Not being used, but may later, if so then uncomment
 ","     { COMMA }
 
 -- Assignment
@@ -73,19 +72,24 @@ id      { ID $$ }
 %left   "==" "!="
 %left   "<" "<=" ">=" ">"
 %left   "+" "-"
-%left   "*" "/"
+%left   "*" "/" "%"
 %left   "(" ")" "[" "]"
-
+%right  "else" -- Precedence is right BECAUSE we want a shift, otherwise a reduce would come into play. See happy tutorial for more info
 
 %%
 
 -- Grammar
 
-Root : Program                                              { Program $1 }
+Root : Definitions                                          { Program $1 }
+     | {- Empty File -}                                     { Program [] }
 
-Program : GDef                                              { [$1] }
-        | GDef Program                                      { $1 : $2 }
-        | {- Empty File -}                                  { [] }
+Definitions : Function                                      { [$1] }
+            | Function Definitions                          { $1 : $2 }
+
+Function : GDef                                             { $1 }
+         | GDec                                             { $1 }
+
+GDec : Tp id "(" FuncParams ")" ";"                         { FuncDec $1 $2 $4 }
 
 GDef : Tp id "(" FuncParams ")" "{" MultStmt "}"            { FuncDef $1 $2 $4 $7 }
 
@@ -97,17 +101,16 @@ Stmt : Simple ";"                                           { Simple $1 }
      | "return" ";"                                         { ReturnStatement Nothing }
      | "return" Exp ";"                                     { ReturnStatement (Just $2) }
      | "{" MultStmt "}"                                     { MultipleStatements $2 }
+     | "{" "}"                                              { MultipleStatements [] }
 
 
 MultStmt : Stmt                                             { [$1] }
          | Stmt MultStmt                                    { $1 : $2 }
-         | {- No Statements -}                              { [] }
 
 Simple : Exp                                                { Expression $1 }
        | AssignOp                                           { AssignOperation $1 }
        | Tp id                                              { VariableDeclaration $1 $2 Nothing }
        | Tp id "=" Exp                                      { VariableDeclaration $1 $2 (Just $4) }
-
 
 Tp : "int"                                                  { TypeInt }
    | "bool"                                                 { TypeBool }
@@ -123,18 +126,18 @@ Exp : "(" Exp ")"                                           { $2 }
     | BinOp                                                 { BinaryOperation $1 }
     | id                                                    { Id $1 }
     | id "(" CallParams ")"                                 { FunctionCall $1 $3 }
-    
+
 ArithmeticOp : Exp "+" Exp                                  { Add $1 $3 }
              | Exp "-" Exp                                  { Subtract $1 $3 }
              | Exp "/" Exp                                  { Divide $1 $3 }
              | Exp "*" Exp                                  { Multiply $1 $3 }
              | Exp "%" Exp                                  { Modulo $1 $3 }
 
-RelationalOp : Exp "==" Exp                                 { Equals $1 $3 } 
-             | Exp "<=" Exp                                 { IsLessOrEqual $1 $3 } 
-             | Exp ">=" Exp                                 { IsMoreOrEqual $1 $3 } 
-             | Exp "!=" Exp                                 { IsNotEqual $1 $3 } 
-             | Exp "<" Exp                                  { IsLess $1 $3 } 
+RelationalOp : Exp "==" Exp                                 { Equals $1 $3 }
+             | Exp "<=" Exp                                 { IsLessOrEqual $1 $3 }
+             | Exp ">=" Exp                                 { IsMoreOrEqual $1 $3 }
+             | Exp "!=" Exp                                 { IsNotEqual $1 $3 }
+             | Exp "<" Exp                                  { IsLess $1 $3 }
              | Exp ">" Exp                                  { IsMore $1 $3 }
 
 AssignOp : id "=" Exp                                       { Assign $1 $3 }

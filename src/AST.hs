@@ -2,7 +2,9 @@ module AST where
 
 data AST = Program [Definitions] deriving (Eq, Show)
 
-data Definitions = FuncDef Type String [Parameters] [Statement] deriving (Eq, Show)
+data Definitions = FuncDef Type String [Parameters] [Statement]
+                 | FuncDec Type String [Parameters]
+                 deriving (Eq, Show)
 
 data Parameters = DefParam Type String deriving (Eq, Show)
 

@@ -18,7 +18,7 @@ Test-Suite lexerTest
 Test-Suite parserTest
   type:                exitcode-stdio-1.0
   main-is:             MainParserTest.hs
-  other-modules:       Lexer, Parser, ParserTest, AST
+  other-modules:       Lexer, Parser, ParserTest, AST, TestPrograms
   other-extensions:    TemplateHaskell
   build-depends:       base, array, QuickCheck
   hs-source-dirs:      src, test
