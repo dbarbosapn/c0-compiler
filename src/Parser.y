@@ -57,8 +57,8 @@ str         { STRING $$ }
 ")"     { RPAREN }
 "("     { LPAREN }
 ";"     { SEMICOLON }
--- "["     { LBRACKET } Not being used, but may latter, if so then uncomment
--- "]"     { RBRACKET } Not being used, but may latter, if so then uncomment
+-- "["     { LBRACKET } Not being used, but may later, if so then uncomment
+-- "]"     { RBRACKET } Not being used, but may later, if so then uncomment
 ","     { COMMA }
 
 -- Assignment
@@ -74,7 +74,7 @@ id      { ID $$ }
 %left   "+" "-"
 %left   "*" "/" "%"
 %left   "(" ")" "[" "]"
-%right  "else" -- Precedence is right BECAUSE we want a shift, otherwise a reduce would come in to play. See happy tutorial for more info
+%right  "else" -- Precedence is right BECAUSE we want a shift, otherwise a reduce would come into play. See happy tutorial for more info
 
 %%
 
@@ -106,6 +106,7 @@ Stmt : Simple ";"                                           { Simple $1 }
 
 MultStmt : Stmt                                             { [$1] }
          | Stmt MultStmt                                    { $1 : $2 }
+         | {- No Statements -}                              { [] }
 
 Simple : Exp                                                { Expression $1 }
        | AssignOp                                           { AssignOperation $1 }
