@@ -22,6 +22,9 @@ data Simple = Expression Expression
             | VariableDeclaration Type String (Maybe Expression)
             deriving (Eq, Show)
 
+data AssignOperation = Assign String Expression
+                     deriving (Eq, Show)
+
 data Type = TypeInt
           | TypeBool
           | TypeChar
@@ -56,6 +59,3 @@ data RelationalOperation = Equals Expression Expression
                          | IsLess Expression Expression
                          | IsMore Expression Expression
                          deriving (Eq, Show)
-
-data AssignOperation = Assign String Expression
-                     deriving (Eq, Show)
