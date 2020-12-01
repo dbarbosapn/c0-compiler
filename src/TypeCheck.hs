@@ -1,4 +1,4 @@
-module Typecheck where
+module TypeCheck where
 
 import           AST
 
@@ -122,3 +122,29 @@ checkSimpleStm table (VariableDeclaration t id expr) =
 checkSimpleStm table (Expression expr) =
   case checkExpr table expr of
     _ -> table
+
+-- Checks Functions definitions/declarations
+checkFunc :: SymTable -> Definitions -> SymTable
+checkFunc table (FuncDec t id args) =
+  case Map.lookup id table of
+    Nothing -> Map.insert id t table
+    _ -> error "Function already declared/defined"
+
+checkFunc table (FuncDef t id args stm) =
+  checkStm (checkFuncArgs (Map.insert id t table) args) (MultipleStatements stm)
+
+checkFuncArgs :: SymTable -> [Parameters] -> SymTable
+checkFuncArgs table [] = table
+checkFuncArgs table ((DefParam t id):xs) = checkFuncArgs (Map.insert id t table) xs
+
+
+-- Check program
+checkProgram :: AST -> SymTable
+checkProgram (Program def) = auxCheckProgram Map.empty def
+
+{- Não tenho muito a vontade com haskell, mas para apanhar o erro tenho que fazer alguma
+   operação sobre a tabela table', a menos que -}
+auxCheckProgram :: SymTable -> [Definitions] -> SymTable
+auxCheckProgram table [] = table
+auxCheckProgram table (x:xs) =
+  auxCheckProgram (checkFunc table x) xs
