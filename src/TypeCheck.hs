@@ -5,24 +5,33 @@ import           AST
 import           Data.Map(Map)
 import qualified Data.Map as Map
 
+{- Notas: Falta implementar as funções print_int etc que supostamente são funções "base"
+          Falta implementar os return statements, i.e falta ir confirmar que o tipo de retorno é igual ao tipo da func
+          Falta implementar alguma maneira de confirmarmos que o tipo dos argumentos de um call correspondem
+                a declaração função
+          Sugestão em vez de programar isto com codigo "Puro" poderiamos ter feito com excepções, seria mais facil perce-
+                ber os error
+          NÃO APAGAR O COMENTARIO!!!!!!! (A menos que seja implementado o que falta)-}
+
 -- Tabela de simbolos
 type SymTable = Map String Type
 
 
 -- Expressions
 
-checkExpr :: SymTable -> Expression -> Type
+checkExpr :: Maybe SymTable -> Expression -> Maybe Type
+checkExpr Nothing _ = Nothing
 -- Basic types
-checkExpr table (IntValue _) = TypeInt
-checkExpr table (BoolValue _) = TypeBool
-checkExpr table (StringValue _) = TypeChar
-checkExpr table (CharValue _) = TypeChar
--- Variable recognition
+checkExpr _ (IntValue _) = Just TypeInt
+checkExpr _ (BoolValue _) = Just TypeBool
+checkExpr _ (StringValue _) = Just TypeChar
+checkExpr _ (CharValue _) = Just TypeChar
 
-checkExpr table (Id something) =
-  case Map.lookup something table of
-    Nothing -> error "undeclared variable"
-    Just t -> t
+checkExpr (Just table) (Id id) = Map.lookup id table
+
+-- I am not checking if the arguments are compatible with the ones declared in function
+-- THIS NEEDS ALOT OF WORKD xD
+checkExpr (Just table) (FunctionCall id expr) = Map.lookup id table
 
 checkExpr table (BinaryOperation (ArithmeticOperation something)) =
   let
@@ -35,11 +44,10 @@ checkExpr table (BinaryOperation (ArithmeticOperation something)) =
     t1' = checkExpr table t1
     t2' = checkExpr table t2
   in
-    if t1' == TypeInt && t2' == TypeInt
-    then
-      TypeInt
+    if t1' == Just TypeInt && t2' == Just TypeInt then
+      Just TypeInt
     else
-       error "Type error in ArithmeticOperation. Invalid type"
+      Nothing
 
 -- Atenção eu estou a supor que so comparamos numeros e não strings
 checkExpr table (BinaryOperation (RelationalOperation something)) =
@@ -54,22 +62,22 @@ checkExpr table (BinaryOperation (RelationalOperation something)) =
     t1' = checkExpr table t1
     t2' = checkExpr table t2
   in
-    if t1' == TypeInt && t2' == TypeInt
-    then
-      TypeBool
+    if t1' == Just TypeInt && t2' == Just TypeInt then
+      Just TypeBool
     else
-       error "Type error in RelationalOperation. Invalid type"
+      Nothing
 
 -- Statements
-checkStm :: SymTable -> Statement -> SymTable
+checkStm :: Maybe SymTable -> Statement -> Maybe SymTable
+checkStm Nothing _ = Nothing
 -- Simple
 checkStm table (Simple something) = checkSimpleStm table something
 
 --Ifs
 checkStm table (IfStatement expr stm) =
   case checkExpr table expr of
-    TypeBool -> checkStm table stm
-    _ -> error "IfStatement: Condition must be bool"
+    Just TypeBool -> checkStm table stm
+    _ -> Nothing
 
 checkStm table (IfElseStatement expr stm1 stm2) =
   checkStm (checkStm table (IfStatement expr stm1)) stm2
@@ -77,74 +85,95 @@ checkStm table (IfElseStatement expr stm1 stm2) =
 -- While
 checkStm table (WhileStatement expr stm) =
   case checkExpr table expr of
-    TypeBool -> checkStm table stm
-    _ -> error "WhileStatement: Condition must be bool"
+    Just TypeBool -> checkStm table stm
+    _ -> Nothing
 
 -- For
 checkStm table (ForStatement (stm1, expr, stm2) stm3) =
   case checkExpr table expr of
-    TypeBool -> let table' = case stm1 of
-                               Nothing -> table
-                               Just something -> checkSimpleStm table something
-                    table'' = case stm2 of
-                                Nothing -> table'
-                                Just something -> checkSimpleStm table' something
-                in
-                  table''
-    _-> error "ForStatement: Condition must be bool"
+    Just TypeBool -> let table' = case stm1 of
+                                    Nothing -> table
+                                    Just something -> checkSimpleStm table something
+                         table'' = case stm2 of
+                                     Nothing -> table'
+                                     Just something -> checkSimpleStm table' something
+                     in
+                       table''
+    _-> Nothing
 
 -- Multiple statements
-checkStm table (MultipleStatements [x]) =
-  checkStm table x
+checkStm table (MultipleStatements []) = table
 checkStm table (MultipleStatements (x:xs)) =
   checkStm (checkStm table x) (MultipleStatements xs)
 
--- Simple Checks. Contains Variable Declaration (Important)
-checkSimpleStm :: SymTable -> Simple -> SymTable
-checkSimpleStm table (AssignOperation (Assign id expr)) =
-  case Map.lookup id table of
-    Nothing -> error "undeclared var"
-    Just t -> let t1 = checkExpr table expr
-              in
-                if t == t1 then
-                  table
-                else
-                  error "type error in assignment"
+-- Return Statement: To do. We need to find a way to check if the return type is the same
+-- as the one that was declared previously. For that we may need the name of the current function we are in
+checkStm table _ = table
 
-checkSimpleStm table (VariableDeclaration t id expr) =
+-- Simple Checks. Contains Variable Declaration (Important)
+checkSimpleStm :: Maybe SymTable -> Simple -> Maybe SymTable
+checkSimpleStm Nothing _ = Nothing
+
+checkSimpleStm (Just table) (AssignOperation (Assign id expr)) =
   case Map.lookup id table of
-    Just t1 -> error "Variable already declared"
+    Nothing -> Nothing
+    Just t -> let t1 = checkExpr (Just table) expr
+              in
+                if (Just t) == t1 then
+                  Just table
+                else
+                  Nothing
+
+checkSimpleStm (Just table) (VariableDeclaration t id expr) =
+  case Map.lookup id table of
+    Just t1 -> Nothing
     Nothing -> case expr of
-                 Nothing -> Map.insert id t table
-                 Just expr1 -> checkSimpleStm (Map.insert id t table) (AssignOperation (Assign id expr1))
+                 Nothing -> Just (Map.insert id t table)
+                 Just expr1 -> checkSimpleStm (Just (Map.insert id t table)) (AssignOperation (Assign id expr1))
 
 -- In c0 we can have a expression alone, but it still needs to be checked
 checkSimpleStm table (Expression expr) =
   case checkExpr table expr of
-    _ -> table
+    Nothing -> Nothing
+    Just _ -> table
 
 -- Checks Functions definitions/declarations
-checkFunc :: SymTable -> Definitions -> SymTable
-checkFunc table (FuncDec t id args) =
+checkFunc :: Maybe SymTable -> Definitions -> Maybe SymTable
+checkFunc Nothing _ = Nothing
+
+checkFunc (Just table) (FuncDec t id args) =
   case Map.lookup id table of
-    Nothing -> Map.insert id t table
-    _ -> error "Function already declared/defined"
+    Nothing -> Just (Map.insert id t table)
+    _ -> Nothing
 
-checkFunc table (FuncDef t id args stm) =
-  checkStm (checkFuncArgs (Map.insert id t table) args) (MultipleStatements stm)
+checkFunc (Just table) (FuncDef t id args stm) =
+  checkStm (checkFuncArgs (Just (Map.insert id t table)) args) (MultipleStatements stm)
 
-checkFuncArgs :: SymTable -> [Parameters] -> SymTable
+checkFuncArgs :: Maybe SymTable -> [Parameters] -> Maybe SymTable
+checkFuncArgs Nothing _ = Nothing
+
 checkFuncArgs table [] = table
-checkFuncArgs table ((DefParam t id):xs) = checkFuncArgs (Map.insert id t table) xs
+checkFuncArgs (Just table) ((DefParam t id):xs) = checkFuncArgs (Just (Map.insert id t table)) xs
 
 
 -- Check program
-checkProgram :: AST -> SymTable
-checkProgram (Program def) = auxCheckProgram Map.empty def
+checkProgram :: AST -> Bool
+checkProgram (Program def) =
+  case (auxCheckProgram (Just Map.empty) def) of
+    Nothing -> False
+    _ -> True
 
-{- Não tenho muito a vontade com haskell, mas para apanhar o erro tenho que fazer alguma
-   operação sobre a tabela table', a menos que -}
-auxCheckProgram :: SymTable -> [Definitions] -> SymTable
+auxCheckProgram :: Maybe SymTable -> [Definitions] -> Maybe SymTable
+auxCheckProgram Nothing _ = Nothing
+
 auxCheckProgram table [] = table
 auxCheckProgram table (x:xs) =
-  auxCheckProgram (checkFunc table x) xs
+  let table' = case x of
+                 FuncDec t id args -> checkFunc table x
+                 FuncDef t id args stm -> checkFunc table (FuncDec t id args)
+  in
+    case x of
+      FuncDec _ _ _ -> auxCheckProgram table' xs
+      _ -> case checkFunc table' x of
+             Nothing -> Nothing
+             _ -> auxCheckProgram table' xs

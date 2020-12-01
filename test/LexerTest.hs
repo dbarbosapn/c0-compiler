@@ -38,7 +38,7 @@ prop_char = getTokens "\'a\'" === [CHAR 'a']
 prop_string = getTokens "\"string \"" === [STRING "string "]
 
 -- Reserved Words
-prop_reservedWords = getTokens "for while if then else return" === [FOR, WHILE, IF, THEN, ELSE, RETURN]
+prop_reservedWords = getTokens "for while if else return" === [FOR, WHILE, IF, ELSE, RETURN]
 
 -- Id test
 prop_id = getTokens "random while random whilerandom" === [ID "random", WHILE, ID "random", ID "whilerandom"]

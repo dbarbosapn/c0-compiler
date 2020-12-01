@@ -15,6 +15,9 @@ test_program_square_sum = "\
 \       print_int(n);                           \
 \   }"
 
+test_program_typeCheckFail :: String
+test_program_typeCheckFail = "int main() { int s = true; }"
+
 test_program_integer_is_prime :: String
 test_program_integer_is_prime = "\
 \   /* Testar se um inteiro positivo é primo. */    \
