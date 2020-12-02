@@ -156,10 +156,14 @@ checkFuncArgs table [] = table
 checkFuncArgs (Just table) ((DefParam t id):xs) = checkFuncArgs (Just (Map.insert id t table)) xs
 
 
+-- Create the base map
+baseMap :: Maybe SymTable
+baseMap = Just (Map.insert "scan_int" TypeVoid (Map.insert "print_int" TypeVoid (Map.insert "print_str" TypeVoid Map.empty)))
+
 -- Check program
 checkProgram :: AST -> Bool
 checkProgram (Program def) =
-  case (auxCheckProgram (Just Map.empty) def) of
+  case (auxCheckProgram (baseMap) def) of
     Nothing -> False
     _ -> True
 

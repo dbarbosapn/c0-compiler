@@ -16,7 +16,10 @@ test_program_square_sum = "\
 \   }"
 
 test_program_typeCheckFail :: String
-test_program_typeCheckFail = "int main() { int s = true; }"
+test_program_typeCheckFail = "\
+\   int main() {        \
+\       int s = true;   \
+\   }"
 
 test_program_integer_is_prime :: String
 test_program_integer_is_prime = "\
