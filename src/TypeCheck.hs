@@ -5,20 +5,16 @@ import           AST
 import           Data.Map(Map)
 import qualified Data.Map as Map
 
-{- Notas: Falta implementar as funções print_int etc que supostamente são funções "base"
-          Falta implementar os return statements, i.e falta ir confirmar que o tipo de retorno é igual ao tipo da func
-          Falta implementar alguma maneira de confirmarmos que o tipo dos argumentos de um call correspondem
-                a declaração função
-          Sugestão em vez de programar isto com codigo "Puro" poderiamos ter feito com excepções, seria mais facil perce-
-                ber os error
-          NÃO APAGAR O COMENTARIO!!!!!!! (A menos que seja implementado o que falta)-}
+{- TODO:  Check if return type matches function type
+          Check if function call arguments match function definition arguments
+          Add readable messages when typecheck errors are found
+-}
 
--- Tabela de simbolos
+-- Symbol Table
 type SymTable = Map String Type
 
 
 -- Expressions
-
 checkExpr :: Maybe SymTable -> Expression -> Maybe Type
 checkExpr Nothing _ = Nothing
 -- Basic types
@@ -29,8 +25,6 @@ checkExpr _ (CharValue _) = Just TypeChar
 
 checkExpr (Just table) (Id id) = Map.lookup id table
 
--- I am not checking if the arguments are compatible with the ones declared in function
--- THIS NEEDS ALOT OF WORKD xD
 checkExpr (Just table) (FunctionCall id expr) = Map.lookup id table
 
 checkExpr table (BinaryOperation (ArithmeticOperation something)) =
@@ -49,7 +43,7 @@ checkExpr table (BinaryOperation (ArithmeticOperation something)) =
     else
       Nothing
 
--- Atenção eu estou a supor que so comparamos numeros e não strings
+-- We are only comparing numbers. Not strings.
 checkExpr table (BinaryOperation (RelationalOperation something)) =
   let
     (t1, t2) = case something of
@@ -106,8 +100,7 @@ checkStm table (MultipleStatements []) = table
 checkStm table (MultipleStatements (x:xs)) =
   checkStm (checkStm table x) (MultipleStatements xs)
 
--- Return Statement: To do. We need to find a way to check if the return type is the same
--- as the one that was declared previously. For that we may need the name of the current function we are in
+
 checkStm table _ = table
 
 -- Simple Checks. Contains Variable Declaration (Important)
@@ -131,7 +124,7 @@ checkSimpleStm (Just table) (VariableDeclaration t id expr) =
                  Nothing -> Just (Map.insert id t table)
                  Just expr1 -> checkSimpleStm (Just (Map.insert id t table)) (AssignOperation (Assign id expr1))
 
--- In c0 we can have a expression alone, but it still needs to be checked
+-- In c0 we can have an expression by itself, but it still needs to be checked
 checkSimpleStm table (Expression expr) =
   case checkExpr table expr of
     Nothing -> Nothing
