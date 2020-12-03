@@ -48,8 +48,8 @@ newLabel = do (table, (temps, labels)) <- get
               return ("L" ++ show labels)
 
 newVar :: String -> State TableCount Temp
-newVar key = do (table, count) <- get
-                t1 <- newTemp
+newVar key = do t1 <- newTemp
+                (table, count) <- get
                 table' <- return $ Map.insert key t1 table
                 put (table', count)
                 return t1
@@ -74,6 +74,10 @@ transExpr :: Expression-> Temp -> State TableCount [Instr]
 transExpr (IntValue n) dest =
   return [MOVEI dest n]
 
+transExpr (Id id) dest =
+  do t1 <- lookupTable id
+     return [MOVE dest t1]
+
 -- Monads are weird!
 transExpr (BinaryOperation (ArithmeticOperation something)) dest =
   do (op, e1, e2) <- case something of
@@ -86,7 +90,6 @@ transExpr (BinaryOperation (ArithmeticOperation something)) dest =
      code1 <- transExpr e1 t1
      code2 <- transExpr e2 t2
      return (code1 ++ code2 ++ [OPE op dest t1 t2])
-
 
 -- Statements
 transStm :: Statement -> State TableCount [Instr]
@@ -135,7 +138,3 @@ transCond (BinaryOperation (RelationalOperation something)) l1 l2 =
      code1 <- transExpr e1 t1
      code2 <- transExpr e2 t2
      return (code1 ++ code2 ++ [COND t1 op t2 l1 l2])
-
--- (WhileStatement (BinaryOperation (RelationalOperation (IsMore (IntValue 3) (IntValue 4)))) (MultipleStatements [Simple (VariableDeclaration TypeInt "n" (Just (BinaryOperation (ArithmeticOperation (Multiply (IntValue 3) (IntValue 4))))))]))
-
-let x = [Simple (VariableDeclaration TypeInt "n" Nothing),Simple (VariableDeclaration TypeInt "r" Nothing),MultipleStatements [Simple (AssignOperation (Assign "n" (IntValue 5))),Simple (AssignOperation (Assign "r" (IntValue 1))),WhileStatement (BinaryOperation (RelationalOperation (IsMore (Id "n") (IntValue 0)))) (MultipleStatements [Simple (AssignOperation (Assign "r" (BinaryOperation (ArithmeticOperation (Multiply (Id "r") (Id "n")))))),Simple (AssignOperation (Assign "n" (BinaryOperation (ArithmeticOperation (Subtract (Id "n") (IntValue 1))))))])]]
