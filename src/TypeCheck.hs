@@ -140,7 +140,7 @@ checkFunc (Just table) (FuncDec t id args) =
     _ -> Nothing
 
 checkFunc (Just table) (FuncDef t id args stm) =
-  checkStm (checkFuncArgs (Just (Map.insert id t table)) args) (MultipleStatements stm)
+  checkStm (checkFuncArgs (Just (Map.insert id t table)) args) stm
 
 checkFuncArgs :: Maybe SymTable -> [Parameters] -> Maybe SymTable
 checkFuncArgs Nothing _ = Nothing
