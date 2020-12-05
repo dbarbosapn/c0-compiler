@@ -1,12 +1,10 @@
 module AST where
 
-data AST = Program [Definitions] deriving (Eq, Show)
+data AST = Program [Definition] deriving (Eq, Show)
 
-data Definitions = FuncDef Type String [Parameters] Statement
-                 | FuncDec Type String [Parameters]
-                 deriving (Eq, Show)
+data Definition = FuncDef Type String [Parameter] Statement deriving (Eq, Show)
 
-data Parameters = DefParam Type String deriving (Eq, Show)
+data Parameter = DefParam Type String deriving (Eq, Show)
 
 data Statement = Simple Simple
                | IfStatement Expression Statement

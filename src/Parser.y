@@ -87,11 +87,9 @@ Definitions : Function                                      { [$1] }
             | Function Definitions                          { $1 : $2 }
 
 Function : GDef                                             { $1 }
-         | GDec                                             { $1 }
-
-GDec : Tp id "(" FuncParams ")" ";"                         { FuncDec $1 $2 $4 }
 
 GDef : Tp id "(" FuncParams ")" "{" MultStmt "}"            { FuncDef $1 $2 $4 (MultipleStatements $7) }
+     | Tp id "(" FuncParams ")" "{" "}"                     { FuncDef $1 $2 $4 (MultipleStatements []) }
 
 Stmt : Simple ";"                                           { Simple $1 }
      | "if" "(" Exp ")" Stmt "else" Stmt                    { IfElseStatement $3 $5 $7 }

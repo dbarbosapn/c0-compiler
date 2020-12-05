@@ -28,9 +28,19 @@ Test-Suite parserTest
 Test-Suite typeCheckTest
   type:                exitcode-stdio-1.0
   main-is:             MainTypeCheckTest.hs
-  other-modules:       Lexer, Parser, ParserTest, AST, TestPrograms, TypeCheck, TypeCheckTest
+  other-modules:       Lexer, Parser, AST, TestPrograms, TypeCheck, TypeCheckTest
   other-extensions:    TemplateHaskell
   build-depends:       base, array, QuickCheck, containers
+  hs-source-dirs:      src, test
+  build-tools:         alex, happy
+  default-language:    Haskell2010
+
+Test-Suite middleCodeTest
+  type:                exitcode-stdio-1.0
+  main-is:             MainMiddleCodeTest.hs
+  other-modules:       Lexer, Parser, AST, MiddleCode, TestPrograms, MiddleCodeTest
+  other-extensions:    TemplateHaskell
+  build-depends:       base, array, QuickCheck, containers, mtl
   hs-source-dirs:      src, test
   build-tools:         alex, happy
   default-language:    Haskell2010
@@ -38,9 +48,9 @@ Test-Suite typeCheckTest
 -- Run compiler
 executable main
   main-is:             Main.hs
-  other-modules:       Lexer, Parser, AST, TypeCheck
+  other-modules:       Lexer, Parser, AST, TypeCheck, MiddleCode
   other-extensions:    TemplateHaskell
-  build-depends:       base, array, QuickCheck, containers
+  build-depends:       base, array, QuickCheck, containers, mtl
   hs-source-dirs:      src, test
   build-tools:         alex, happy
   default-language:    Haskell2010
