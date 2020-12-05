@@ -180,6 +180,8 @@ transDef (FuncDef t id params stm) = do
   resetTemps
   transDefParams params
   code <- transStm stm
+  _ <- restoreTable table
+  -- we don't need to restore temps since we don't have global variables
   return ((LABEL label) : code)
 
 transDefParams :: [Parameter] -> State TableCount [Temp]
