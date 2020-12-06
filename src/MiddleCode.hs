@@ -159,6 +159,25 @@ transStm (WhileStatement e1 stm1) =
     code2 <- transStm stm1
     return ([LABEL label1] ++ code1 ++ [LABEL label2] ++ code2 ++ [JUMP label1, LABEL label3])
 
+transStm (ForStatement (something, expr, Nothing) stm) =
+  do code1 <- case something of
+             Nothing -> return []
+             Just e1 -> transStm (Simple e1)
+     code2 <- transStm (WhileStatement expr stm)
+     return (code1 ++ code2)
+
+transStm (ForStatement (something1, expr, Just something2) stm) =
+  do code1 <- case something1 of
+             Nothing -> return []
+             Just e1 -> transStm (Simple e1)
+     l1 <- newLabel
+     l2 <- newLabel
+     l3 <- newLabel
+     code2 <- transCond expr l2 l3
+     code3 <- transStm stm
+     code4 <- transStm (Simple something2)
+     return (code1 ++ [LABEL l1] ++ code2 ++ [LABEL l2] ++ code3 ++ code4 ++ [JUMP l1, LABEL l3])
+
 transStm (ReturnStatement Nothing) =
   return [RETURN_NOTHING]
 transStm (ReturnStatement (Just expr)) =
