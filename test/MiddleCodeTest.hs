@@ -10,7 +10,7 @@ import           Data.Map(Map)
 import qualified Data.Map as Map
 
 
-prop_empty_main = transProgram (parse (getTokens "int main(int x, int y) { }")) === []
+prop_empty_main = transProgram (parse (getTokens "int main(int x, int y) { return x+1; }")) === []
 
 return []
 runMiddleCodeTest = $(verboseCheckAll)

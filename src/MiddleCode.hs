@@ -159,6 +159,13 @@ transStm (WhileStatement e1 stm1) =
     code2 <- transStm stm1
     return ([LABEL label1] ++ code1 ++ [LABEL label2] ++ code2 ++ [JUMP label1, LABEL label3])
 
+transStm (ReturnStatement Nothing) =
+  return [RETURN_NOTHING]
+transStm (ReturnStatement (Just expr)) =
+  do t1 <- newTemp
+     code1 <- transExpr expr t1
+     return (code1 ++ [RETURN t1])
+
 transCond :: Expression -> Label -> Label -> State TableCount [Instr]
 transCond (BinaryOperation (RelationalOperation something)) l1 l2 =
   do
