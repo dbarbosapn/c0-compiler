@@ -44,25 +44,23 @@ data Instr
   | RETURN Temp
   deriving (Eq, Show)
 
+type Args = [Temp]
+type FuncId = String
+data Function = Def FuncId Args [Instr]
+              deriving (Eq, Show)
+
+-- New State Stuff
 newTemp :: State TableCount Temp
 newTemp = do
   (table, (temps, labels)) <- get
   put (table, (temps + 1, labels))
   return ("t" ++ show temps)
 
-resetTemps :: State TableCount Int
-resetTemps = do
-  (table, (temps, labels)) <- get
-  put (table, (0, labels))
-  return temps
-
-newLabel :: Maybe String -> State TableCount Label
-newLabel something = do
+newLabel :: State TableCount Label
+newLabel = do
   (table, (temps, labels)) <- get
   put (table, (temps, labels + 1))
-  case something of
-    Nothing -> return ("L" ++ show labels)
-    Just str -> return str
+  return ("L" ++ show labels)
 
 newVar :: String -> State TableCount Temp
 newVar key = do
@@ -72,12 +70,20 @@ newVar key = do
   put (table', count)
   return t1
 
+-- Restore State
+restoreTempCount :: Int -> State TableCount Int
+restoreTempCount n =
+  do (table, (temps, labels)) <- get
+     put (table, (n, labels))
+     return n
+
 restoreTable :: Table -> State TableCount Table
 restoreTable table = do
   (table', count) <- get
   put (table, count)
   return table
 
+-- Look up in table
 lookupTable :: String -> State TableCount Temp
 lookupTable id = do
   (table, count) <- get
@@ -85,10 +91,16 @@ lookupTable id = do
     Nothing -> return (error "Could not find id in table")
     Just something -> return something
 
+-- Get State Info
 getTable :: State TableCount Table
 getTable = do
   (table, count) <- get
   return table
+
+getTempCount :: State TableCount Int
+getTempCount =
+  do (_, (temps, _)) <- get
+     return temps
 
 -- Expressions
 transExpr :: Expression -> Temp -> State TableCount [Instr]
@@ -140,12 +152,38 @@ transStm (MultipleStatements (x : xs)) =
     return (code1 ++ code2)
 transStm (WhileStatement e1 stm1) =
   do
-    label1 <- newLabel Nothing
-    label2 <- newLabel Nothing
-    label3 <- newLabel Nothing
+    label1 <- newLabel
+    label2 <- newLabel
+    label3 <- newLabel
     code1 <- transCond e1 label2 label3
     code2 <- transStm stm1
     return ([LABEL label1] ++ code1 ++ [LABEL label2] ++ code2 ++ [JUMP label1, LABEL label3])
+
+transStm (ForStatement (something, expr, Nothing) stm) =
+  do code1 <- case something of
+             Nothing -> return []
+             Just e1 -> transStm (Simple e1)
+     code2 <- transStm (WhileStatement expr stm)
+     return (code1 ++ code2)
+
+transStm (ForStatement (something1, expr, Just something2) stm) =
+  do code1 <- case something1 of
+             Nothing -> return []
+             Just e1 -> transStm (Simple e1)
+     l1 <- newLabel
+     l2 <- newLabel
+     l3 <- newLabel
+     code2 <- transCond expr l2 l3
+     code3 <- transStm stm
+     code4 <- transStm (Simple something2)
+     return (code1 ++ [LABEL l1] ++ code2 ++ [LABEL l2] ++ code3 ++ code4 ++ [JUMP l1, LABEL l3])
+
+transStm (ReturnStatement Nothing) =
+  return [RETURN_NOTHING]
+transStm (ReturnStatement (Just expr)) =
+  do t1 <- newTemp
+     code1 <- transExpr expr t1
+     return (code1 ++ [RETURN t1])
 
 transCond :: Expression -> Label -> Label -> State TableCount [Instr]
 transCond (BinaryOperation (RelationalOperation something)) l1 l2 =
@@ -163,30 +201,32 @@ transCond (BinaryOperation (RelationalOperation something)) l1 l2 =
     code2 <- transExpr e2 t2
     return (code1 ++ code2 ++ [COND t1 op t2 l1 l2])
 
-translateProgram :: AST -> [Instr]
-translateProgram (Program definitions) = evalState (transDefs definitions) (Map.empty, (0, 0))
+transArgs :: [Parameter] -> State TableCount [Temp]
+transArgs [] = return []
+transArgs ((DefParam _ var):xs) =
+  do t1 <- newVar var
+     rest <- transArgs xs
+     return (t1:rest)
 
-transDefs :: [Definition] -> State TableCount [Instr]
+transFunction :: Definition -> State TableCount Function
+transFunction (FuncDef _ id args stm) =
+  do args' <- transArgs args
+     code1 <- transStm stm
+     return (Def id args' code1)
+
+transDefs :: [Definition] -> State TableCount [Function]
 transDefs [] = return []
-transDefs (x : xs) = do
-  code1 <- transDef x
-  code2 <- transDefs xs
-  return (code1 ++ code2)
+transDefs (x : xs) =
+  do table <- getTable
+     tempCount <- getTempCount
+     elem <- transFunction x
+     -- Before we go to the next definition we need to restore the table and temp count (They are local)
+     -- Instead of simply putting everything at "zero", it's more "powerfull" to get the previous struff
+     restoreTable table
+     restoreTempCount tempCount
+     rest <- transDefs xs
+     return (elem:rest)
 
-transDef :: Definition -> State TableCount [Instr]
-transDef (FuncDef t id params stm) = do
-  label <- newLabel (Just id)
-  table <- getTable
-  resetTemps
-  transDefParams params
-  code <- transStm stm
-  _ <- restoreTable table
-  -- we don't need to restore temps since we don't have global variables
-  return ((LABEL label) : code)
-
-transDefParams :: [Parameter] -> State TableCount [Temp]
-transDefParams [] = return []
-transDefParams (x : xs) = do
-  t <- newTemp
-  rest <- transDefParams xs
-  return (t : rest)
+transProgram :: AST -> [Function]
+transProgram (Program []) = []
+transProgram (Program x) = evalState (transDefs x) (Map.empty, (0,0))
