@@ -15,8 +15,6 @@ type TableCount = (Table, Count)
 
 type Temp = String
 
-zero = "zero"
-
 type Label = String
 
 -- No need to separate arithmetic and relational operations, because
@@ -50,6 +48,7 @@ data Instr
   | CALL FuncId Args
   | JUMP Label
   | COND Temp Op Temp Label Label
+  | COND_ZERO Temp Label Label
   | RET
   | RETVAL Temp
   deriving (Eq, Show)
@@ -260,7 +259,7 @@ transCond e1 l1 l2 =
   do
     t1 <- newTemp
     code1 <- transExpr e1 t1
-    return (code1 ++ [COND t1 R_GREATER zero l1 l2])
+    return (code1 ++ [COND_ZERO t1 l1 l2])
 
 
 transArgs :: [Parameter] -> State TableCount [Temp]
