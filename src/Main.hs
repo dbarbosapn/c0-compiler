@@ -17,7 +17,7 @@ main = do
 
 codeGeneration :: AST -> IO()
 codeGeneration ast = do
-                    let middlecode = translateProgram ast
+                    let middlecode = transProgram ast
                     print middlecode
                     
                     
