@@ -7,13 +7,16 @@ import qualified Data.Map as Map
 import Data.Char
 import TypeCheck
 
-type Count = (Int, Int)
+type Count = (Int, Int, Int, Int) -- -> nº $a, nº $t, nº $s, nº labels
 
 type Table = Map String String
 
 type TableCount = (Table, Count)
 
+
 type Temp = String
+type Saved = String
+type Arg = String
 
 type Label = String
 
@@ -56,25 +59,39 @@ data Instr
 -- New State Stuff
 newTemp :: State TableCount Temp
 newTemp = do
-  (table, (temps, labels)) <- get
-  put (table, (temps + 1, labels))
+  (table, (args, saved, temps, labels)) <- get
+  put (table, (args, saved, temps + 1, labels))
   return ("t" ++ show temps)
 
 popTemp :: State TableCount Int
 popTemp =
-  do (table, (temps, labels)) <- get
-     put (table, (temps - 1, labels))
+  do (table, (args, saved, temps, labels)) <- get
+     put (table, (args, saved, temps - 1, labels))
      return $ temps - 1
+
+newSaved :: State TableCount Saved
+newSaved =
+  do (table, (args, saved, temps, labels)) <- get
+     put (table, (args, saved + 1, temps, labels))
+     return ("s" ++ show saved)
+
+newArg :: State TableCount Arg
+newArg =
+  do (table, (args, saved, temps, labels)) <- get
+     put (table, (args + 1, saved, temps, labels))
+     return ("a" ++ show args)
 
 newLabel :: State TableCount Label
 newLabel = do
-  (table, (temps, labels)) <- get
-  put (table, (temps, labels + 1))
+  (table, (args, saved, temps, labels)) <- get
+  put (table, (args, saved, temps, labels + 1))
   return ("L" ++ show labels)
 
-newVar :: String -> State TableCount Temp
-newVar key = do
-  t1 <- newTemp
+newVar :: String -> Bool -> State TableCount String
+newVar key bool= do
+  t1 <- case bool of
+          True -> newSaved
+          _ -> newArg
   (table, count) <- get
   table' <- return $ Map.insert key t1 table
   put (table', count)
@@ -83,9 +100,15 @@ newVar key = do
 -- Restore State
 restoreTempCount :: Int -> State TableCount Int
 restoreTempCount n =
-  do (table, (temps, labels)) <- get
-     put (table, (n, labels))
+  do (table, (arg, saved, temps, labels)) <- get
+     put (table, (arg, saved, n, labels))
      return n
+
+restoreVarCount :: (Int, Int, Int) -> State TableCount Count
+restoreVarCount (x, y, z) =
+  do (table, (arg, saved, temps, labels)) <- get
+     put (table, (x, y, z, labels))
+     return (x, y, z, labels)
 
 restoreTable :: Table -> State TableCount Table
 restoreTable table = do
@@ -94,7 +117,7 @@ restoreTable table = do
   return table
 
 -- Look up in table
-lookupTable :: String -> State TableCount Temp
+lookupTable :: String -> State TableCount String
 lookupTable id = do
   (table, count) <- get
   case Map.lookup id table of
@@ -107,9 +130,14 @@ getTable = do
   (table, count) <- get
   return table
 
+getVarCount :: State TableCount (Int, Int, Int)
+getVarCount =
+  do (_, (x, y, z, _)) <- get
+     return (x, y, z)
+
 getTempCount :: State TableCount Int
 getTempCount =
-  do (_, (temps, _)) <- get
+  do (_, (_, _, temps, _)) <- get
      return temps
 
 -- Expressions
@@ -182,7 +210,7 @@ transStm (Simple (AssignOperation (Assign id e1))) =
 
 transStm (Simple (VariableDeclaration _ id something)) =
   do
-    t1 <- newVar id
+    t1 <- newVar id True
     case something of
       Nothing -> return []
       Just e1 -> transExpr e1 t1
@@ -262,18 +290,21 @@ transCond (BinaryOperation (RelationalOperation something)) l1 l2 =
     t2 <- newTemp
     code1 <- transExpr e1 t1
     code2 <- transExpr e2 t2
+    popTemp
+    popTemp
     return (code1 ++ code2 ++ [COND t1 op t2 l1 l2])
 transCond e1 l1 l2 =
   do
     t1 <- newTemp
     code1 <- transExpr e1 t1
+    popTemp
     return (code1 ++ [COND_ZERO t1 l1 l2])
 
 
 transArgs :: [Parameter] -> State TableCount [Temp]
 transArgs [] = return []
 transArgs ((DefParam _ var):xs) =
-  do t1 <- newVar var
+  do t1 <- newVar var False
      rest <- transArgs xs
      return (t1:rest)
 
@@ -287,15 +318,15 @@ transDefs :: [Definition] -> State TableCount [Function]
 transDefs [] = return []
 transDefs (x : xs) =
   do table <- getTable
-     tempCount <- getTempCount
+     varCount <- getVarCount
      elem <- transFunction x
      -- Before we go to the next definition we need to restore the table and temp count (They are local)
      -- Instead of simply putting everything at "zero", it's more "powerfull" to get the previous struff
      restoreTable table
-     restoreTempCount tempCount
+     restoreVarCount varCount
      rest <- transDefs xs
      return (elem:rest)
 
 transProgram :: AST -> [Function]
 transProgram (Program []) = []
-transProgram (Program x) = evalState (transDefs x) (Map.empty, (0,0))
+transProgram (Program x) = evalState (transDefs x) (Map.empty, (0, 0, 0, 0))
