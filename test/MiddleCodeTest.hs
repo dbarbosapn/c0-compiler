@@ -10,7 +10,7 @@ import           Data.Map(Map)
 import qualified Data.Map as Map
 
 
-prop_arithmetic = transProgram (parse (getTokens "int main(int x, int y) { return x+1; }")) === [Def "main" ["t0","t1"] [MOVE "t3" "t0",MOVEI "t4" 1,OP A_ADD "t2" "t3" "t4",RETVAL "t2"]]
+prop_arithmetic = transProgram (parse (getTokens "int main(int x, int y) { return x+1; }")) === [Def "main" ["t0","t1"] [MOVE "t3" "t0",MOVEI "t4" 1,OP A_ADD "t2" "t3" "t4",RETVAL "t2"] ]
 
 prop_for = transProgram (parse (getTokens "int main(int x, int y) { for( int i=0; i<x; i = i+1 ) { y = y + 1;}}")) === [Def "main" ["t0","t1"] [MOVEI "t2" 0,LABEL "L0",MOVE "t3" "t2",MOVE "t4" "t0",COND "t3" R_LESS "t4" "L1" "L2",LABEL "L1",MOVE "t5" "t1",MOVEI "t6" 1,OP A_ADD "t1" "t5" "t6",MOVE "t7" "t2",MOVEI "t8" 1,OP A_ADD "t2" "t7" "t8",JUMP "L0",LABEL "L2"]]
 
