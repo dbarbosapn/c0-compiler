@@ -60,6 +60,12 @@ newTemp = do
   put (table, (temps + 1, labels))
   return ("t" ++ show temps)
 
+popTemp :: State TableCount Int
+popTemp =
+  do (table, (temps, labels)) <- get
+     put (table, (temps - 1, labels))
+     return $ temps - 1
+
 newLabel :: State TableCount Label
 newLabel = do
   (table, (temps, labels)) <- get
@@ -110,8 +116,8 @@ getTempCount =
 transExpr :: Expression -> Temp -> State TableCount [Instr]
 transExpr (IntValue n) dest =
   return [MOVEI dest n]
-transExpr (BoolValue b) dest = if b 
-  then return [MOVEI dest 1] 
+transExpr (BoolValue b) dest = if b
+  then return [MOVEI dest 1]
   else return [MOVEI dest 0]
 transExpr (StringValue s) dest =
   return [MOVES dest s]
@@ -135,6 +141,8 @@ transExpr (BinaryOperation (ArithmeticOperation something)) dest =
     t2 <- newTemp
     code1 <- transExpr e1 t1
     code2 <- transExpr e2 t2
+    popTemp
+    popTemp
     return (code1 ++ code2 ++ [OP op dest t1 t2])
 
 transExpr (BinaryOperation (RelationalOperation something)) dest =
