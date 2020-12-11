@@ -19,5 +19,3 @@ codeGeneration :: AST -> IO()
 codeGeneration ast = do
                     let middlecode = transProgram ast
                     print middlecode
-                    
-                    

@@ -47,7 +47,8 @@ data Instr
   | LABEL Label
   | CALL FuncId Args
   | JUMP Label
-  | COND Temp Label Label
+  | COND Temp Op Temp Label Label
+  | COND_ZERO Temp Label Label
   | RET
   | RETVAL Temp
   deriving (Eq, Show)
@@ -138,18 +139,10 @@ transExpr (BinaryOperation (ArithmeticOperation something)) dest =
 
 transExpr (BinaryOperation (RelationalOperation something)) dest =
   do
-    (op, e1, e2) <- case something of
-      (Equals e1 e2) -> return (R_EQ, e1, e2)
-      (IsLessOrEqual e1 e2) -> return (R_LESSEQ, e1, e2)
-      (IsMoreOrEqual e1 e2) -> return (R_GREATEREQ, e1, e2)
-      (IsNotEqual e1 e2) -> return (R_NEQ, e1, e2)
-      (IsLess e1 e2) -> return (R_LESS, e1, e2)
-      (IsMore e1 e2) -> return (R_GREATER, e1, e2)
-    t1 <- newTemp
-    t2 <- newTemp
-    code1 <- transExpr e1 t1
-    code2 <- transExpr e2 t2
-    return (code1 ++ code2 ++ [OP op dest t1 t2])
+    l1 <- newLabel
+    l2 <- newLabel
+    code1 <- transCond (BinaryOperation (RelationalOperation something)) l1 l2
+    return (code1 ++ [LABEL l1, MOVEI dest 1, LABEL l2, MOVEI dest 0])
 
 transExpr (FunctionCall id params) dest =
   do
@@ -248,11 +241,26 @@ transStm (ReturnStatement (Just expr)) =
      return (code1 ++ [RETVAL t1])
 
 transCond :: Expression -> Label -> Label -> State TableCount [Instr]
+transCond (BinaryOperation (RelationalOperation something)) l1 l2 =
+  do
+    (op, e1, e2) <- case something of
+      (Equals e1 e2) -> return (R_EQ, e1, e2)
+      (IsLessOrEqual e1 e2) -> return (R_LESSEQ, e1, e2)
+      (IsMoreOrEqual e1 e2) -> return (R_GREATEREQ, e1, e2)
+      (IsNotEqual e1 e2) -> return (R_NEQ, e1, e2)
+      (IsLess e1 e2) -> return (R_LESS, e1, e2)
+      (IsMore e1 e2) -> return (R_GREATER, e1, e2)
+    t1 <- newTemp
+    t2 <- newTemp
+    code1 <- transExpr e1 t1
+    code2 <- transExpr e2 t2
+    return (code1 ++ code2 ++ [COND t1 op t2 l1 l2])
 transCond e1 l1 l2 =
   do
     t1 <- newTemp
     code1 <- transExpr e1 t1
-    return (code1 ++ [COND t1 l1 l2])
+    return (code1 ++ [COND_ZERO t1 l1 l2])
+
 
 transArgs :: [Parameter] -> State TableCount [Temp]
 transArgs [] = return []
