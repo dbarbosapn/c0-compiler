@@ -1,111 +1,136 @@
 module MachineSym where
 
-{- To do: Add immediate, mips dosent have subi and muli so we need to do that in
-          typecheck
-          Move S, needs to allocate an array -}
+{- To do: Add immediate, mips dosent have subi and muli so we need to do that in typecheck
+          Move S, needs to allocate an array
+          URGENT: Something wrong when: n = "Function call". We are not saving the result in a variable.
+          Middle code SHOULD say something about it, for example SAVED CALL dest, so that we know how
+          to proceed here. Then the only thing left would be to pass v0 to the actual variable
+          Change "save something" "delete something" to proper MIPS, basically adding to the stack and saving
+          and loading followed by taking from the stack
+          There is also some mumbo jumbo realated to call, like saving the return address etc..
+          -}
 
 import MiddleCode
 import Control.Monad.State
 import Data.List
+import Data.Set (Set)
+import qualified Data.Set as Set
 
-type VarCount = (Int, Int, Int) --- $a $t $s
-type MipsProgram = [String] -- In reverse
-type Info = (MipsProgram, VarCount)
+-- type VarCount = (Int, Int, Int) --- $a $t $s
+-- type MipsProgram = [String] -- In reverse
+-- type Info = (MipsProgram, VarCount)
 
--- Important Note: Because i only look locally, don't actually know what needs to
--- be saved. So we have three options. For each time we use a saved reg we save it
--- in the stack, OR we keep track of the number of variables used in case we call
--- something, OR we look head. Both have their set backs, but i thick the easier one
--- to implement would be to keep track of the variables
+type VarTrack = (Set Arg, Set Temp, Set Saved)
 
+-- Monad stuff
+getInfo :: State VarTrack VarTrack
+getInfo =
+  do something <- get
+     return something
 
--- generateMips :: [Function] -> IO()
--- generateMips something =
---   case something of
---     [] -> putStrLn ""
---     list -> do decodeFunction $ head list
---                generateMips $ tail list
+getInfoSaved :: State VarTrack [Saved]
+getInfoSaved =
+  do (_, y, _) <- get
+     return $ Set.toList y
 
-addInfo :: String -> State Info ()
-addInfo str =
-  do (info, count) <- get
-     put (str:info, count) -- It's more efficient to build it in reverse xD
+resetInfo :: State VarTrack ()
+resetInfo =
+  do put (Set.empty, Set.empty, Set.empty)
 
-getProgram :: State Info MipsProgram
-getProgram =
-  do (prog, count) <- get
-     return $ reverse prog
+resetInfoTemp :: State VarTrack ()
+resetInfoTemp =
+  do (x, y, z) <- get
+     put (x, Set.empty, z)
 
-restoreCount :: VarCount -> State Info ()
-restoreCount count =
-  do (prog, _) <- get
-     put (prog, count)
+restoreInfo :: VarTrack -> State VarTrack ()
+restoreInfo something =
+  do put something
 
-getCount :: State Info VarCount
-getCount =
-  do (_, count) <- get
-     return count
+addVar :: String -> State VarTrack ()
+addVar (w:ws) =
+  do (x, y, z) <- getInfo
+     case w of
+       's' -> put (x, y, Set.insert (w:ws) z)
+       't' -> put (x, Set.insert (w:ws) y, z)
+       'a' -> put (Set.insert (w:ws) x, y, z)
 
+-- Generation stuff
 generateMips :: [Function] -> IO ()
 generateMips something =
-  putStrLn $ intercalate "\n" $ evalState (decodeProgram something) ([], (0,0,0))
+  putStrLn $ evalState (decodeProgram something) (Set.empty, Set.empty, Set.empty)
 
-decodeProgram :: [Function] -> State Info MipsProgram
-decodeProgram [] = getProgram
+decodeProgram :: [Function] -> State VarTrack String
+decodeProgram [] = return ""
+decodeProgram ((Def id args inst):xs) =
+  do resetInfo
+     body <- decodeInstr inst
+     (x, y, z) <- getInfo
+     let list = Set.toList z
+     start <- saveInStack list 0
+     end <- deleteFromStack list (length list - 1)
+     rest <- decodeProgram xs
+     return $ "_" ++ id ++ "_:\n" ++ start ++ body ++ end ++ rest
 
-decodeProgram (x:xs) =
-  do decodeFunction x
-     decodeProgram xs
+saveInStack :: [String] -> Int -> State VarTrack String
+saveInStack [] _ = return ""
+saveInStack (x:xs) n =
+  do let str = "\tsave " ++ x ++ "\n"
+     str' <- saveInStack xs (n+1)
+     return (str ++ str')
 
--- Needs more work
-decodeFunction :: Function -> State Info ()
-decodeFunction (Def id args inst) =
-  do addInfo $ "_" ++ id ++ "_:"
-     decodeInstr inst
+deleteFromStack :: [String] -> Int -> State VarTrack String
+deleteFromStack [] _ = return ""
+deleteFromStack (x:xs) n =
+  do let str = "\tdelete " ++ x ++ "\n"
+     str' <- deleteFromStack xs (n-1)
+     return (str ++ str')
 
--- Needs more work
-decodeReturn :: Instr -> State Info ()
-decodeReturn something =
-  do case something of
-       RET -> addInfo $ "\tReturn"
-       RETVAL t -> addInfo $ "\tReturn " ++ t
-       _ -> addInfo $ "Something wrong"
+decodeInstr :: [Instr] -> State VarTrack String
+decodeInstr [] = return ""
+decodeInstr ((CALL id args):xs) =
+  decodeFuncCall ((CALL id args):xs)
 
--- Need more work
-decodeFuncCall :: Instr -> State Info ()
-decodeFuncCall (CALL id args) =
-  do addInfo $ "\t" ++ "call " ++ id
-
-decodeInstr :: [Instr] -> State Info ()
-decodeInstr [] = return ()
 decodeInstr (x:xs) =
-  do case x of
-       OP _ _ _ _ -> decodeInstArithmetic x
-       MOVE t1 t2 -> do addInfo $ "\t" ++ "move " ++ t1 ++ ", " ++ t2
-       MOVEI t1 n -> do addInfo $ "\t" ++ "li " ++ t1 ++ ", " ++ (show n)
-       CALL _ _ -> decodeFuncCall x
-       LABEL l1 -> addInfo $ l1 ++ ":"
-       COND _ _ _ _ _ -> decodeWhile x
-       COND_ZERO _ _ _ -> decodeWhile x
-       JUMP l -> addInfo $ "\t" ++ "jump " ++ l
-       _ -> decodeReturn x
-     decodeInstr xs
+  do str <- case x of
+              OP _ _ _ _ -> decodeInstArithmetic x
+              MOVE _ _ -> decodeMove x
+              MOVEI _ _ -> decodeMove x
+              LABEL l1 -> return (l1 ++ ":\n")
+              COND _ _ _ _ _ -> decodeWhile x
+              COND_ZERO _ _ _ -> decodeWhile x
+              JUMP l -> return ("\t" ++ "jump " ++ l ++ "\n" )
+              _ -> decodeReturn x
+     str' <- decodeInstr xs
+     return (str ++ str')
 
-decodeInstArithmetic :: Instr -> State Info ()
+decodeInstArithmetic :: Instr -> State VarTrack String
 decodeInstArithmetic (OP op t1 t2 t3) =
-  do case op of
-       A_ADD -> addInfo $ "\t" ++ "add " ++ t1 ++ ", " ++ t2 ++ ", " ++ t3
-       A_MULT -> addInfo $ "\t" ++ "mul " ++ t1 ++ ", " ++ t2 ++ ", " ++ t3
-       A_SUB -> addInfo $ "\t" ++ "sub " ++ t1 ++ ", " ++ t2 ++ ", " ++ t3
-       _ -> do addInfo $ "\t" ++ "div" ++ t2 ++ ", " ++ t3
+  do addVar t1
+     addVar t2
+     addVar t3
+     case op of
+       A_ADD -> return $ "\t" ++ "add " ++ t1 ++ ", " ++ t2 ++ ", " ++ t3 ++ "\n"
+       A_MULT -> return $ "\t" ++ "mul " ++ t1 ++ ", " ++ t2 ++ ", " ++ t3 ++ "\n"
+       A_SUB -> return $ "\t" ++ "sub " ++ t1 ++ ", " ++ t2 ++ ", " ++ t3 ++ "\n"
+       _ -> do return $ "\t" ++ "div" ++ t2 ++ ", " ++ t3
                case op of
-                 A_DIV -> addInfo $ "\t" ++ "mflo " ++ t1
-                 A_MOD -> addInfo $ "\t" ++ "mfhi " ++ t1
+                 A_DIV -> return $ "\t" ++ "mflo " ++ t1 ++ "\n"
+                 A_MOD -> return $ "\t" ++ "mfhi " ++ t1 ++ "\n"
 
--- Our middle code does alot, so the while statement its simple to do here
-decodeWhile :: Instr -> State Info ()
+decodeMove :: Instr -> State VarTrack String
+decodeMove (MOVE t1 t2) =
+  do addVar t1
+     addVar t2
+     return $ "\t" ++ "move " ++ t1 ++ ", " ++ t2 ++ "\n"
+
+decodeMove (MOVEI t n) =
+  do addVar t
+     return $ "\t" ++ "li " ++ t ++ ", " ++ (show n) ++ "\n"
+
+decodeWhile :: Instr -> State VarTrack String
 decodeWhile (COND_ZERO t1 l1 l2) =
-  do addInfo $ "\t" ++ "beq " ++ t1 ++ ", " ++ "$zero" ++ ", " ++ l2
+  do addVar t1
+     return $ "\t" ++ "beq " ++ t1 ++ ", " ++ "$zero" ++ ", " ++ l2 ++ "\n"
 
 decodeWhile (COND t1 op t2 l1 l2) =
   do let str = case op of
@@ -115,4 +140,32 @@ decodeWhile (COND t1 op t2 l1 l2) =
                  R_GREATEREQ -> "bge "
                  R_LESS -> "blt "
                  R_LESSEQ -> "ble "
-     addInfo $ "\t" ++ str ++ t1 ++ ", " ++ t2 ++ ", " ++ l2
+     addVar t1
+     addVar t2
+     return $ "\t" ++ str ++ t1 ++ ", " ++ t2 ++ ", " ++ l2 ++ "\n"
+
+decodeFuncCall :: [Instr] -> State VarTrack String
+decodeFuncCall [] = return ""
+decodeFuncCall ((CALL id args):xs) =
+  do (x, y, z) <- getInfo
+     resetInfoTemp
+     body <- decodeInstr xs
+     (_, y', _) <- getInfo
+     -- Não vale a pena guardar temps que mais a frente são usados que não foram inicializados
+     -- antes. Ha espaço para melhorar a implementação
+     let list = intersect (Set.toList y) (Set.toList y')
+     restoreInfo (x, y, z)
+     start <- saveInStack list 0
+     end <- deleteFromStack list (length list -1)
+     return (start ++ "\t" ++ "call " ++ id ++ "\n" ++ body ++ end)
+
+decodeReturn :: Instr -> State VarTrack String
+decodeReturn something =
+  do (x, y, z) <- getInfo
+     let list = Set.toList z
+     start <- deleteFromStack list (length list -1)
+     let end = case something of
+                 RET -> "\tReturn\n"
+                 RETVAL t -> "\tReturn " ++ t ++ "\n"
+                 _ -> "Something wrong probably string related" ++ "\n"
+     return (start ++ end)
