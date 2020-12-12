@@ -1,5 +1,10 @@
 module MiddleCode where
 
+{- 
+  TODO: 
+    There's no need for a MOVE_RET if we're doing a call without an assignment.
+-}
+
 import AST
 import Control.Monad.State
 import Data.Map (Map)
@@ -54,6 +59,7 @@ data Instr
   | COND_ZERO Temp Label Label
   | RET
   | RETVAL Temp
+  | MOVE_RET Temp -- temp = $v0
   deriving (Eq, Show)
 
 -- New State Stuff
@@ -177,13 +183,14 @@ transExpr (BinaryOperation (RelationalOperation something)) dest =
   do
     l1 <- newLabel
     l2 <- newLabel
+    l3 <- newLabel
     code1 <- transCond (BinaryOperation (RelationalOperation something)) l1 l2
-    return (code1 ++ [LABEL l1, MOVEI dest 1, LABEL l2, MOVEI dest 0])
+    return (code1 ++ [LABEL l1, MOVEI dest 1, JUMP l3, LABEL l2, MOVEI dest 0, LABEL l3])
 
 transExpr (FunctionCall id params) dest =
   do
     (insts, tmps) <- transCallParams params
-    return (insts ++ [CALL id tmps])
+    return (insts ++ [CALL id tmps, MOVE_RET dest])
 
 transCallParams :: [Expression] -> State TableCount ([Instr], [Temp])
 transCallParams [] = return ([], [])
