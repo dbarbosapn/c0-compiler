@@ -51,6 +51,11 @@ resetInfoTemp =
   do (x, y, z) <- get
      put (x, Set.empty, z)
 
+resetInfoArg :: State VarTrack ()
+resetInfoArg =
+  do (x, y, z) <- get
+     put (Set.empty, y, z)
+
 restoreInfo :: VarTrack -> State VarTrack ()
 restoreInfo something =
   do put something
@@ -72,40 +77,65 @@ decodeProgram [] = return ""
 decodeProgram ((Def id args inst):xs) =
   do resetInfo
      body <- decodeInstr inst
+     (_, _, z) <- getInfo
+     list <- return $ Set.toList z
+     start <- saveInStack list True
+     end <- deleteFromStack list True
      rest <- decodeProgram xs
-     return $ "_" ++ id ++ "_:\n" ++ body ++ "\tjr $ra\n" ++ rest
+     return $ "_" ++ id ++ "_:\n" ++ start ++ body ++ end ++ "\tjr $ra\n" ++ rest
 
-saveInStack :: [String] -> State VarTrack String
-saveInStack list = 
-  do
-    let n = length list
-    let allocate = "\taddiu $sp, $sp, -" ++ show ((n+1) * 4) ++ "\n"
-    let str = "\tsw $ra, " ++ show (n*4) ++ "($sp)\n"
-    str' <- saveInStackRec list (n-1)
-    return $ allocate ++ str ++ str'
+-- So precisamos de guardar o $ra quando definimos uma função, funciona como um reg saved
+-- O Bool diz se estamos perante uma definição ou um call, com true se for definição, false se for um call
+saveInStack :: [String] -> Bool -> State VarTrack String
+saveInStack list True =
+  do let n = length list
+     let str1 = "\taddiu $sp, $sp, -" ++ show ((n+1) * 4) ++ "\n"
+     let str2 = "\tsw $ra, " ++ show 0 ++ "($sp)\n"
+     str3 <- saveInStackRec list 1
+     return $ str1 ++ str2 ++ str3
+
+-- É feito um check para ver se str2 esta vazia, se estiver não há necessidade de retornar str1, pois
+-- é codigo redundante
+saveInStack list False =
+  do let n = length list
+     let str1 = "\taddiu $sp, $sp, -" ++ show (n * 4) ++ "\n"
+     str2 <- saveInStackRec list 0
+     case str2 of
+       "" -> return ""
+       _ -> return $ str1 ++ str2
 
 saveInStackRec :: [String] -> Int -> State VarTrack String
 saveInStackRec [] _ = return ""
 saveInStackRec (x:xs) n =
   do let str = "\tsw $" ++ x ++ ", " ++ show (n*4) ++ "($sp)\n"
-     str' <- saveInStackRec xs (n-1)
+     str' <- saveInStackRec xs (n+1)
      return (str ++ str')
 
-deleteFromStack :: [String] -> State VarTrack String
-deleteFromStack l = 
-  do
-    let n = length l
-    let str1 = "\tlw $ra, " ++ show (n*4) ++ "($sp)\n"
-    str2 <- loadFromStack l (n-1)
-    let str3 = "\taddiu $sp, $sp, " ++ show ((n+1) * 4) ++ "\n"
-    return $ (str1 ++ str2 ++ str3)
+-- Quando tiramos da stack, i.e fazemos load, precisamos de saber se estamos perante um return ou
+-- no FIM de uma definição de função, pois dependendo do caso, precisamos de repor o $ra, bem como
+-- repor a stack ao nivel previo
+deleteFromStack :: [String] -> Bool -> State VarTrack String
+deleteFromStack l True =
+  do let n = length l
+     let str1 = "\tlw $ra, " ++ show 0 ++ "($sp)\n"
+     str2 <- loadFromStack l 1
+     let str3 = "\taddiu $sp, $sp, " ++ show ((n+1) * 4) ++ "\n"
+     return $ str1 ++ str2 ++ str3
+
+deleteFromStack l False =
+  do let n = length l
+     str1 <- loadFromStack l 0
+     let str2 =  "\taddiu $sp, $sp, " ++ show (n * 4) ++ "\n"
+     case str1 of
+       "" -> return ""
+       _ -> return $ str1 ++ str2
 
 loadFromStack :: [String] -> Int -> State VarTrack String
 loadFromStack [] _ = return ""
 loadFromStack (x:xs) n =
   do
     let str = "\tlw $" ++ x ++ ", " ++ show (n*4) ++ "($sp)\n"
-    str' <- saveInStackRec xs (n-1)
+    str' <- loadFromStack xs (n+1)
     return (str ++ str')
 
 decodeInstr :: [Instr] -> State VarTrack String
@@ -174,34 +204,43 @@ decodeCond (COND t1 op t2 l1 l2) =
     addVar t2
     return $ "\t" ++ str ++ "$" ++ t1 ++ ", $" ++ t2 ++ ", " ++ l2 ++ "\n"
 
+-- Para simplificar as coisas, os registos $a, iram funcionar como reg temporarios, i.e o caller
+-- é que os guarda
 decodeFuncCall :: [Instr] -> State VarTrack String
 decodeFuncCall [] = return ""
 decodeFuncCall ((CALL id args):xs) =
   do (x, y, z) <- getInfo
      resetInfoTemp
+     resetInfoArg
      body <- decodeInstr xs
-     (_, y', _) <- getInfo
-     let list = intersect (Set.toList y) (Set.toList y')
-     restoreInfo (x, y, z)
-     start <- saveInStack list
-     end <- deleteFromStack list
      argcode <- decodeCallArgs args 0
+     (x', y', _) <- getInfo
+     let list = (intersect (Set.toList x) (Set.toList x')) ++ (intersect (Set.toList y) (Set.toList y'))
+     restoreInfo (x, y, z)
+     start <- saveInStack list False
+     end <- deleteFromStack list False
      return (start ++ argcode ++ "\t" ++ "jal " ++ id ++ "\n" ++ end ++ body)
 
 decodeCallArgs :: [Temp] -> Int -> State VarTrack String
 decodeCallArgs [] _ = return ""
-decodeCallArgs (x:xs) n = 
+decodeCallArgs (x:xs) n =
   do
     let code1 = "\tmove $a" ++ show n ++ ", $" ++ x ++ "\n"
+    addVar $ "a" ++ show n
     code2 <- decodeCallArgs xs (n+1)
     return (code1 ++ code2)
 
-
+-- Nos basicamente estamos a chamar esta função no fim de cada definição de funções,
+-- ou seja se uma definição acaba com return, então iremos ter codigo repetido.
+-- No entanto não muda o precurso do programa pois o codigo repetido nunca sera executado
+-- Podemos resolver isto, fazendo um check to tipo de retorno da função
 decodeReturn :: Instr -> State VarTrack String
 decodeReturn something =
-  do
-     let str = case something of
-                 RET -> "\tjr $ra\n"
-                 RETVAL t -> "\tmove $v0, $" ++ t ++ "\n\tjr $ra\n"
-                 _ -> "Something wrong probably string related" ++ "\n"
-     return str
+  do (_, _, z) <- getInfo
+     let list = Set.toList z
+     str1 <- deleteFromStack list True
+     let str2 = case something of
+                  RET -> "\tjr $ra\n"
+                  RETVAL t -> "\tmove $v0, $" ++ t ++ "\n\tjr $ra\n"
+                  _ -> "Something wrong probably string related" ++ "\n"
+     return $ str1 ++ str2
