@@ -12,7 +12,7 @@ test_program_square_sum = "\
 \           s = s + n*n;                        \
 \           n = n + 1;                          \
 \       }                                       \
-\       print_int(n);                           \
+\       print_int(s);                           \
 \   }"
 
 test_program_typeCheckFail :: String

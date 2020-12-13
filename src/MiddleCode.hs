@@ -1,10 +1,5 @@
 module MiddleCode where
 
-{- 
-  TODO: 
-    There's no need for a MOVE_RET if we're doing a call without an assignment.
--}
-
 import AST
 import Control.Monad.State
 import Data.Map (Map)

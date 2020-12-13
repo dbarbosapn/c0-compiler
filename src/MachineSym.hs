@@ -1,14 +1,13 @@
 module MachineSym where
 
 {- TODO:  Improvements (Still works without):
-          There's no need to save in the stack temporary registers that are not going to be used later.
           There's no need for an extra "jr $ra" if we have a return at the end
           To follow the mips convention, we should not do operations directly with $a0 etc.
+          There's no need for a MOVE_RET if we're doing a call without an assignment. (MiddleCode)
 
           Must:
           Add immediate, mips dosent have subi and muli so we need to do that in typecheck
           Move S, needs to allocate an array
-          We should not jump to $ra on _main_
 -}
 
 import MiddleCode
@@ -22,6 +21,13 @@ import qualified Data.Set as Set
 -- type Info = (MipsProgram, VarCount)
 
 type VarTrack = (Set Arg, Set Temp, Set Saved)
+
+-- Jumps to main and then exits the program
+prefixCode :: String
+prefixCode = "\tjal _main_\n\tli $v0, 10\n\tsyscall\n"
+
+suffixCode :: String
+suffixCode = "print_int:\n\tli $2, 1\n\tsyscall\n\tjr $ra\n"
 
 -- Monad stuff
 getInfo :: State VarTrack VarTrack
@@ -57,7 +63,7 @@ addVar (w:ws) =
 
 -- Generation stuff
 generateMips :: [Function] -> String
-generateMips something = evalState (decodeProgram something) (Set.empty, Set.empty, Set.empty)
+generateMips something = prefixCode ++ (evalState (decodeProgram something) (Set.empty, Set.empty, Set.empty)) ++ suffixCode
 
 decodeProgram :: [Function] -> State VarTrack String
 decodeProgram [] = return ""
@@ -79,7 +85,7 @@ saveInStack list =
 saveInStackRec :: [String] -> Int -> State VarTrack String
 saveInStackRec [] _ = return ""
 saveInStackRec (x:xs) n =
-  do let str = "\tsw " ++ x ++ ", " ++ show (n*4) ++ "($sp)\n"
+  do let str = "\tsw $" ++ x ++ ", " ++ show (n*4) ++ "($sp)\n"
      str' <- saveInStackRec xs (n-1)
      return (str ++ str')
 
@@ -96,7 +102,7 @@ loadFromStack :: [String] -> Int -> State VarTrack String
 loadFromStack [] _ = return ""
 loadFromStack (x:xs) n =
   do
-    let str = "\tlw " ++ x ++ ", " ++ show (n*4) ++ "($sp)\n"
+    let str = "\tlw $" ++ x ++ ", " ++ show (n*4) ++ "($sp)\n"
     str' <- saveInStackRec xs (n-1)
     return (str ++ str')
 
@@ -114,7 +120,7 @@ decodeInstr (x:xs) =
               LABEL l1 -> return (l1 ++ ":\n")
               COND _ _ _ _ _ -> decodeCond x
               COND_ZERO _ _ _ -> decodeCond x
-              JUMP l -> return ("\t" ++ "jump " ++ l ++ "\n" )
+              JUMP l -> return ("\t" ++ "j " ++ l ++ "\n" )
               _ -> decodeReturn x
      str' <- decodeInstr xs
      return (str ++ str')
@@ -177,7 +183,17 @@ decodeFuncCall ((CALL id args):xs) =
      restoreInfo (x, y, z)
      start <- saveInStack list
      end <- deleteFromStack list
-     return (start ++ "\t" ++ "jal " ++ id ++ "\n" ++ body ++ end)
+     argcode <- decodeCallArgs args 0
+     return (start ++ argcode ++ "\t" ++ "jal " ++ id ++ "\n" ++ end ++ body)
+
+decodeCallArgs :: [Temp] -> Int -> State VarTrack String
+decodeCallArgs [] _ = return ""
+decodeCallArgs (x:xs) n = 
+  do
+    let code1 = "\tmove $a" ++ show n ++ ", $" ++ x ++ "\n"
+    code2 <- decodeCallArgs xs (n+1)
+    return (code1 ++ code2)
+
 
 decodeReturn :: Instr -> State VarTrack String
 decodeReturn something =

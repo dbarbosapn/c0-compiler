@@ -58,7 +58,7 @@ Test-Suite machineSymTest
 -- Run compiler
 executable main
   main-is:             Main.hs
-  other-modules:       Lexer, Parser, AST, TypeCheck, MiddleCode
+  other-modules:       Lexer, Parser, AST, TypeCheck, MiddleCode, MachineSym
   other-extensions:    TemplateHaskell
   build-depends:       base, array, QuickCheck, containers, mtl
   hs-source-dirs:      src, test
