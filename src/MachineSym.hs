@@ -1,13 +1,15 @@
 module MachineSym where
 
 {- TODO:  Improvements (Still works without):
-          There's no need for an extra "jr $ra" if we have a return at the end
-          To follow the mips convention, we should not do operations directly with $a0 etc.
-          There's no need for a MOVE_RET if we're doing a call without an assignment. (MiddleCode)
+            There's no need for an extra "jr $ra" if we have a return at the end
+            To follow the mips convention, we should not do operations directly with $a0 etc.
+            To follow the mips convention, we should do the stack updates inside the function, not before the call.
+            There's no need for a MOVE_RET if we're doing a call without an assignment. (to fix in MiddleCode)
 
           Must:
-          Add immediate, mips dosent have subi and muli so we need to do that in typecheck
-          Move S, needs to allocate an array
+            Add immediate, mips dosent have subi and muli so we need to do that in typecheck
+            Move S, needs to allocate an array
+            Add the other pre-written functions on suffixCode (print_str, read_int...)
 -}
 
 import MiddleCode
