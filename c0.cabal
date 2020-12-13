@@ -45,10 +45,20 @@ Test-Suite middleCodeTest
   build-tools:         alex, happy
   default-language:    Haskell2010
 
+Test-Suite machineSymTest
+  type:                exitcode-stdio-1.0
+  main-is:             MainMachineSymTest.hs
+  other-modules:       Lexer, Parser, AST, MiddleCode, MachineSym, TestPrograms, MachineSymTest
+  other-extensions:    TemplateHaskell
+  build-depends:       base, array, QuickCheck, containers, mtl
+  hs-source-dirs:      src, test
+  build-tools:         alex, happy
+  default-language:    Haskell2010
+
 -- Run compiler
 executable main
   main-is:             Main.hs
-  other-modules:       Lexer, Parser, AST, TypeCheck, MiddleCode
+  other-modules:       Lexer, Parser, AST, TypeCheck, MiddleCode, MachineSym
   other-extensions:    TemplateHaskell
   build-depends:       base, array, QuickCheck, containers, mtl
   hs-source-dirs:      src, test
